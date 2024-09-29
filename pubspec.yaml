@@ -1,7 +1,10 @@
 name: libsane
-description: A starting point for Dart libraries or applications.
+description: Dart bindings for the SANE library
 version: 0.1.0
-# repository: https://github.com/my_org/my_repo
+repository: https://github.com/Jupi007/libsane.dart
+
+platforms:
+  linux:
 
 environment:
   sdk: ^3.5.0
