@@ -694,7 +694,7 @@ class _SaneReadResponse implements _SaneIsolateResponse {
   final Uint8List bytes;
 }
 
-// START
+// CANCEL
 
 class _SaneCancelMessage implements _SaneIsolateMessage {
   _SaneCancelMessage({required this.handle});
