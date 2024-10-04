@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:libsane/libsane.dart';
-import 'package:libsane/src/structures.dart';
 
 void main(List<String> args) async {
   final sane = LibSaneIsolate(sane: LibSane());

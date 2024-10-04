@@ -2,7 +2,6 @@ import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:libsane/libsane.dart';
-import 'package:libsane/src/structures.dart';
 
 class LibSaneIsolate implements LibSane {
   LibSaneIsolate({
