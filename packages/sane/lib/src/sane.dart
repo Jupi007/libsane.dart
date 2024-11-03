@@ -22,7 +22,7 @@ class Sane {
   }) {
     final completer = Completer<int>();
 
-    authCallbackAdapter(
+    void authCallbackAdapter(
       SANE_String_Const resource,
       ffi.Pointer<SANE_Char> username,
       ffi.Pointer<SANE_Char> password,
@@ -79,7 +79,7 @@ class Sane {
 
   Future<List<SaneDevice>> getDevices({
     required bool localOnly,
-  }) async {
+  }) {
     final completer = Completer<List<SaneDevice>>();
 
     Future(() {
@@ -107,7 +107,7 @@ class Sane {
     return completer.future;
   }
 
-  Future<SaneHandle> open(String deviceName) async {
+  Future<SaneHandle> open(String deviceName) {
     final completer = Completer<SaneHandle>();
 
     Future(() {
@@ -132,7 +132,7 @@ class Sane {
     return completer.future;
   }
 
-  Future<SaneHandle> openDevice(SaneDevice device) async {
+  Future<SaneHandle> openDevice(SaneDevice device) {
     return open(device.name);
   }
 
@@ -231,7 +231,7 @@ class Sane {
           valuePointer = ffi.nullptr;
 
         case SaneOptionValueType.group:
-          throw SaneInvalidDataException();
+          throw const SaneInvalidDataException();
       }
 
       if (action == SaneAction.setValue) {
@@ -267,7 +267,7 @@ class Sane {
 
           invalid:
           default:
-            throw SaneInvalidDataException();
+            throw const SaneInvalidDataException();
         }
       }
 
@@ -287,7 +287,8 @@ class Sane {
       switch (optionType) {
         case SaneOptionValueType.bool:
           result = dartBoolFromSaneBool(
-              (valuePointer as ffi.Pointer<SANE_Bool>).value);
+            (valuePointer as ffi.Pointer<SANE_Bool>).value,
+          );
 
         case SaneOptionValueType.int:
           result = (valuePointer as ffi.Pointer<SANE_Int>).value;
@@ -306,16 +307,18 @@ class Sane {
           result = null;
 
         default:
-          throw SaneInvalidDataException();
+          throw const SaneInvalidDataException();
       }
 
       ffi.calloc.free(valuePointer);
       ffi.calloc.free(infoPointer);
 
-      completer.complete(SaneOptionResult(
-        result: result,
-        infos: infos,
-      ));
+      completer.complete(
+        SaneOptionResult(
+          result: result,
+          infos: infos,
+        ),
+      );
     });
 
     return completer.future;
@@ -326,8 +329,8 @@ class Sane {
     required int index,
     required SaneAction action,
     bool? value,
-  }) async {
-    return await _controlOption<bool>(
+  }) {
+    return _controlOption<bool>(
       handle: handle,
       index: index,
       action: action,
@@ -340,8 +343,8 @@ class Sane {
     required int index,
     required SaneAction action,
     int? value,
-  }) async {
-    return await _controlOption<int>(
+  }) {
+    return _controlOption<int>(
       handle: handle,
       index: index,
       action: action,
@@ -354,8 +357,8 @@ class Sane {
     required int index,
     required SaneAction action,
     double? value,
-  }) async {
-    return await _controlOption<double>(
+  }) {
+    return _controlOption<double>(
       handle: handle,
       index: index,
       action: action,
@@ -368,8 +371,8 @@ class Sane {
     required int index,
     required SaneAction action,
     String? value,
-  }) async {
-    return await _controlOption<String>(
+  }) {
+    return _controlOption<String>(
       handle: handle,
       index: index,
       action: action,
@@ -380,8 +383,8 @@ class Sane {
   Future<SaneOptionResult<Null>> controlButtonOption({
     required SaneHandle handle,
     required int index,
-  }) async {
-    return await _controlOption<Null>(
+  }) {
+    return _controlOption<Null>(
       handle: handle,
       index: index,
       action: SaneAction.setValue,
@@ -395,7 +398,9 @@ class Sane {
     Future(() {
       final nativeParametersPointer = ffi.calloc<SANE_Parameters>();
       final status = dylib.sane_get_parameters(
-          _getNativeHandle(handle), nativeParametersPointer);
+        _getNativeHandle(handle),
+        nativeParametersPointer,
+      );
       print('sane_get_parameters() -> ${status.name}');
 
       status.check();
