@@ -2,3 +2,6 @@ name: sane_workspace
 
 packages:
   - packages/**
+
+scripts:
+  format-check: melos exec dart format . --set-exit-if-changed
