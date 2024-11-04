@@ -14,12 +14,21 @@ import 'package:sane/src/utils.dart';
 typedef AuthCallback = SaneCredentials Function(String resourceName);
 
 class Sane {
+  factory Sane() => _instance ??= Sane._();
+
+  Sane._();
+
+  static Sane? _instance;
+  bool _exited = false;
   final Map<SaneHandle, SANE_Handle> _nativeHandles = {};
+
   SANE_Handle _getNativeHandle(SaneHandle handle) => _nativeHandles[handle]!;
 
   Future<int> init({
     AuthCallback? authCallback,
   }) {
+    _checkIfExited();
+
     final completer = Completer<int>();
 
     void authCallbackAdapter(
@@ -65,13 +74,19 @@ class Sane {
   }
 
   Future<void> exit() {
+    if (_exited) return Future.value();
+
     final completer = Completer<void>();
 
     Future(() {
+      _exited = true;
+
       dylib.sane_exit();
       print('sane_exit()');
 
       completer.complete();
+
+      _instance = null;
     });
 
     return completer.future;
@@ -80,6 +95,8 @@ class Sane {
   Future<List<SaneDevice>> getDevices({
     required bool localOnly,
   }) {
+    _checkIfExited();
+
     final completer = Completer<List<SaneDevice>>();
 
     Future(() {
@@ -108,6 +125,8 @@ class Sane {
   }
 
   Future<SaneHandle> open(String deviceName) {
+    _checkIfExited();
+
     final completer = Completer<SaneHandle>();
 
     Future(() {
@@ -133,10 +152,14 @@ class Sane {
   }
 
   Future<SaneHandle> openDevice(SaneDevice device) {
+    _checkIfExited();
+
     return open(device.name);
   }
 
   Future<void> close(SaneHandle handle) {
+    _checkIfExited();
+
     final completer = Completer<void>();
 
     Future(() {
@@ -154,6 +177,8 @@ class Sane {
     SaneHandle handle,
     int index,
   ) {
+    _checkIfExited();
+
     final completer = Completer<SaneOptionDescriptor>();
 
     Future(() {
@@ -175,6 +200,8 @@ class Sane {
   Future<List<SaneOptionDescriptor>> getAllOptionDescriptors(
     SaneHandle handle,
   ) {
+    _checkIfExited();
+
     final completer = Completer<List<SaneOptionDescriptor>>();
 
     Future(() {
@@ -201,6 +228,8 @@ class Sane {
     required SaneAction action,
     T? value,
   }) {
+    _checkIfExited();
+
     final completer = Completer<SaneOptionResult<T>>();
 
     Future(() {
@@ -393,6 +422,8 @@ class Sane {
   }
 
   Future<SaneParameters> getParameters(SaneHandle handle) {
+    _checkIfExited();
+
     final completer = Completer<SaneParameters>();
 
     Future(() {
@@ -416,6 +447,8 @@ class Sane {
   }
 
   Future<void> start(SaneHandle handle) {
+    _checkIfExited();
+
     final completer = Completer<void>();
 
     Future(() {
@@ -431,6 +464,8 @@ class Sane {
   }
 
   Future<Uint8List> read(SaneHandle handle, int bufferSize) {
+    _checkIfExited();
+
     final completer = Completer<Uint8List>();
 
     Future(() {
@@ -464,6 +499,8 @@ class Sane {
   }
 
   Future<void> cancel(SaneHandle handle) {
+    _checkIfExited();
+
     final completer = Completer<void>();
 
     Future(() {
@@ -477,6 +514,8 @@ class Sane {
   }
 
   Future<void> setIOMode(SaneHandle handle, SaneIOMode mode) {
+    _checkIfExited();
+
     final completer = Completer<void>();
 
     Future(() {
@@ -492,5 +531,10 @@ class Sane {
     });
 
     return completer.future;
+  }
+
+  @pragma('vm:prefer-inline')
+  void _checkIfExited() {
+    if (_exited) throw SaneDisposedError();
   }
 }
