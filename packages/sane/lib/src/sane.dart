@@ -1,546 +1,210 @@
 import 'dart:async';
-import 'dart:ffi' as ffi;
 import 'dart:typed_data';
 
-import 'package:ffi/ffi.dart' as ffi;
-import 'package:sane/src/bindings.g.dart';
-import 'package:sane/src/dylib.dart';
-import 'package:sane/src/exceptions.dart';
-import 'package:sane/src/extensions.dart';
-import 'package:sane/src/logger.dart';
-import 'package:sane/src/structures.dart';
-import 'package:sane/src/type_conversion.dart';
-import 'package:sane/src/utils.dart';
+import 'package:meta/meta.dart';
+import 'package:sane/sane.dart';
+import 'package:sane/src/impl/sane_mock.dart';
+import 'package:sane/src/impl/sane_native.dart';
+import 'package:sane/src/impl/sane_sync.dart';
 
 typedef AuthCallback = SaneCredentials Function(String resourceName);
 
-class Sane {
-  factory Sane() => _instance ??= Sane._();
+abstract interface class Sane {
+  /// Instantiates a new asynchronous SANE instance.
+  ///
+  /// See also:
+  ///
+  /// - [Sane.sync]
+  factory Sane([Sane? backingSane]) => NativeSane(backingSane);
 
-  Sane._();
+  /// Instantiates a new synchronous SANE instance.
+  factory Sane.sync() => SyncSane();
 
-  static Sane? _instance;
-  bool _exited = false;
-  final Map<SaneHandle, SANE_Handle> _nativeHandles = {};
+  /// Instantiates a mock SANE instance for testing.
+  factory Sane.mock() => MockSane();
 
-  SANE_Handle _getNativeHandle(SaneHandle handle) => _nativeHandles[handle]!;
+  /// Disposes the SANE instance.
+  ///
+  /// Closes all device handles and all future calls are invalid.
+  ///
+  /// See also:
+  ///
+  /// - [`sane_exit`](https://sane-project.gitlab.io/standard/api.html#sane-exit)
+  void dispose();
 
-  Future<int> init({
-    AuthCallback? authCallback,
-  }) {
-    _checkIfExited();
+  /// Initializes the SANE library.
+  FutureOr<SaneVersion> initialize([AuthCallback? authCallback]);
 
-    final completer = Completer<int>();
+  /// Queries the list of devices that are available.
+  ///
+  /// This method can be called repeatedly to detect when new devices become
+  /// available. If argument [localOnly] is true, only local devices are
+  /// returned (devices directly attached to the machine that SANE is running
+  /// on). If it is `false`, the device list includes all remote devices that
+  /// are accessible to the SANE library.
+  ///
+  /// See also:
+  ///
+  /// - [`sane_get_devices`](https://sane-project.gitlab.io/standard/api.html#sane-get-devices)
+  FutureOr<List<SaneDevice>> getDevices({required bool localOnly});
+}
 
-    void authCallbackAdapter(
-      SANE_String_Const resource,
-      ffi.Pointer<SANE_Char> username,
-      ffi.Pointer<SANE_Char> password,
-    ) {
-      final credentials = authCallback!(dartStringFromSaneString(resource)!);
-      for (var i = 0;
-          i < credentials.username.length && i < SANE_MAX_USERNAME_LEN;
-          i++) {
-        username[i] = credentials.username.codeUnitAt(i);
-      }
-      for (var i = 0;
-          i < credentials.password.length && i < SANE_MAX_PASSWORD_LEN;
-          i++) {
-        password[i] = credentials.password.codeUnitAt(i);
-      }
-    }
+// TODO(Craftplacer): Turn SaneVersion into an extension type, once available.
+@immutable
+class SaneVersion {
+  const SaneVersion.fromCode(this.code);
 
-    Future(() {
-      final versionCodePointer = ffi.calloc<SANE_Int>();
-      final nativeAuthCallback = authCallback != null
-          ? ffi.NativeCallable<SANE_Auth_CallbackFunction>.isolateLocal(
-              authCallbackAdapter,
-            ).nativeFunction
-          : ffi.nullptr;
-      final status = dylib.sane_init(versionCodePointer, nativeAuthCallback);
-      logger.finest('sane_init() -> ${status.name}');
+  final int code;
 
-      status.check();
+  int get major => (code >> 24) & 0xff;
 
-      final versionCode = versionCodePointer.value;
-      logger.finest(
-        'SANE version: ${SaneUtils.version(versionCodePointer.value)}',
-      );
+  int get minor => (code >> 16) & 0xff;
 
-      ffi.calloc.free(versionCodePointer);
-      ffi.calloc.free(nativeAuthCallback);
+  int get build => (code >> 0) & 0xffff;
 
-      completer.complete(versionCode);
-    });
+  @override
+  String toString() => '$major.$minor.$build';
 
-    return completer.future;
-  }
+  @override
+  bool operator ==(covariant SaneVersion other) => code == other.code;
 
-  Future<void> exit() {
-    if (_exited) return Future.value();
+  @override
+  int get hashCode => code;
+}
 
-    final completer = Completer<void>();
+/// Represents a SANE device.
+///
+/// Devices can be retrieved using [Sane.getDevices].
+///
+/// See also:
+///
+/// - [Device Descriptor Type](https://sane-project.gitlab.io/standard/api.html#device-descriptor-type)
+abstract interface class SaneDevice {
+  /// The name of the device.
+  String get name;
 
-    Future(() {
-      _exited = true;
+  /// The type of the device.
+  ///
+  /// For a list of predefined types, see [SaneDeviceTypes].
+  String get type;
 
-      dylib.sane_exit();
-      logger.finest('sane_exit()');
+  /// The vendor (manufacturer) of the device.
+  ///
+  /// Can be `null` for virtual devices that have no physical vendor associated.
+  String? get vendor;
 
-      completer.complete();
+  /// The model of the device.
+  String get model;
 
-      _instance = null;
-    });
+  /// Disposes the SANE device. Infers [cancel].
+  ///
+  /// See also:
+  ///
+  /// - [`sane_close`](https://sane-project.gitlab.io/standard/api.html#sane-close)
+  FutureOr<void> close();
 
-    return completer.future;
-  }
+  /// Tries to cancel the currently pending operation of the device immediately
+  /// or as quickly as possible.
+  ///
+  /// See also:
+  ///
+  /// - [`sane_cancel`](https://sane-project.gitlab.io/standard/api.html#sane-cancel)
+  FutureOr<void> cancel();
 
-  Future<List<SaneDevice>> getDevices({
-    required bool localOnly,
-  }) {
-    _checkIfExited();
+  /// Reads image data from the device.
+  ///
+  /// The returned [Uint8List] is [bufferSize] bytes long or less. If it is
+  /// zero, the end of the frame has been reached.
+  ///
+  /// Exceptions:
+  ///
+  /// - Throws [SaneCancelledException] if the operation was cancelled through
+  ///   a call to [cancel].
+  /// - Throws [SaneJammedException] if the document feeder is jammed.
+  /// - Throws [SaneNoDocumentsException] if the document feeder is out of
+  ///   documents.
+  /// - Throws [SaneCoverOpenException] if the scanner cover is open.
+  /// - Throws [SaneIoException] if an error occurred while communicating with
+  ///   the device.
+  /// - Throws [SaneNoMemoryException] if no memory is available.
+  /// - Throws [SaneAccessDeniedException] if access to the device has been
+  ///   denied due to insufficient or invalid authentication.
+  ///
+  /// See also:
+  ///
+  /// - [`sane_read`](https://sane-project.gitlab.io/standard/api.html#sane-read)
+  FutureOr<Uint8List> read({required int bufferSize});
 
-    final completer = Completer<List<SaneDevice>>();
+  /// Initiates acquisition of an image from the device.
+  ///
+  /// Exceptions:
+  ///
+  /// - Throws [SaneCancelledException] if the operation was cancelled through
+  ///   a call to [cancel].
+  /// - Throws [SaneDeviceBusyException] if the device is busy. The operation
+  ///   should be later again.
+  /// - Throws [SaneJammedException] if the document feeder is jammed.
+  /// - Throws [SaneNoDocumentsException] if the document feeder is out of
+  ///   documents.
+  /// - Throws [SaneCoverOpenException] if the scanner cover is open.
+  /// - Throws [SaneIoException] if an error occurred while communicating with
+  ///   the device.
+  /// - Throws [SaneNoMemoryException] if no memory is available.
+  /// - Throws [SaneInvalidDataException] if the sane cannot be started with the
+  ///   current set of options. The frontend should reload the option
+  ///   descriptors.
+  ///
+  /// See also:
+  ///
+  /// - [`sane_start`](https://sane-project.gitlab.io/standard/api.html#sane-start)
+  FutureOr<void> start();
 
-    Future(() {
-      final deviceListPointer =
-          ffi.calloc<ffi.Pointer<ffi.Pointer<SANE_Device>>>();
-      final status = dylib.sane_get_devices(
-        deviceListPointer,
-        saneBoolFromDartBool(localOnly),
-      );
+  FutureOr<SaneOptionDescriptor> getOptionDescriptor(int index);
 
-      logger.finest('sane_get_devices() -> ${status.name}');
+  FutureOr<List<SaneOptionDescriptor>> getAllOptionDescriptors();
 
-      status.check();
-
-      final devices = <SaneDevice>[];
-      for (var i = 0; deviceListPointer.value[i] != ffi.nullptr; i++) {
-        final nativeDevice = deviceListPointer.value[i].ref;
-        devices.add(saneDeviceFromNative(nativeDevice));
-      }
-
-      ffi.calloc.free(deviceListPointer);
-
-      completer.complete(devices);
-    });
-
-    return completer.future;
-  }
-
-  Future<SaneHandle> open(String deviceName) {
-    _checkIfExited();
-
-    final completer = Completer<SaneHandle>();
-
-    Future(() {
-      final nativeHandlePointer = ffi.calloc<SANE_Handle>();
-      final deviceNamePointer = saneStringFromDartString(deviceName);
-      final status = dylib.sane_open(deviceNamePointer, nativeHandlePointer);
-      logger.finest('sane_open() -> ${status.name}');
-
-      status.check();
-
-      final handle = SaneHandle(deviceName: deviceName);
-      _nativeHandles.addAll({
-        handle: nativeHandlePointer.value,
-      });
-
-      ffi.calloc.free(nativeHandlePointer);
-      ffi.calloc.free(deviceNamePointer);
-
-      completer.complete(handle);
-    });
-
-    return completer.future;
-  }
-
-  Future<SaneHandle> openDevice(SaneDevice device) {
-    _checkIfExited();
-
-    return open(device.name);
-  }
-
-  Future<void> close(SaneHandle handle) {
-    _checkIfExited();
-
-    final completer = Completer<void>();
-
-    Future(() {
-      dylib.sane_close(_getNativeHandle(handle));
-      _nativeHandles.remove(handle);
-      logger.finest('sane_close()');
-
-      completer.complete();
-    });
-
-    return completer.future;
-  }
-
-  Future<SaneOptionDescriptor> getOptionDescriptor(
-    SaneHandle handle,
+  FutureOr<SaneOptionResult<bool>> controlBoolOption(
     int index,
-  ) {
-    _checkIfExited();
-
-    final completer = Completer<SaneOptionDescriptor>();
-
-    Future(() {
-      final optionDescriptorPointer =
-          dylib.sane_get_option_descriptor(_getNativeHandle(handle), index);
-      final optionDescriptor = saneOptionDescriptorFromNative(
-        optionDescriptorPointer.ref,
-        index,
-      );
-
-      ffi.calloc.free(optionDescriptorPointer);
-
-      completer.complete(optionDescriptor);
-    });
-
-    return completer.future;
-  }
-
-  Future<List<SaneOptionDescriptor>> getAllOptionDescriptors(
-    SaneHandle handle,
-  ) {
-    _checkIfExited();
-
-    final completer = Completer<List<SaneOptionDescriptor>>();
-
-    Future(() {
-      final optionDescriptors = <SaneOptionDescriptor>[];
-
-      for (var i = 0; true; i++) {
-        final descriptorPointer =
-            dylib.sane_get_option_descriptor(_getNativeHandle(handle), i);
-        if (descriptorPointer == ffi.nullptr) break;
-        optionDescriptors.add(
-          saneOptionDescriptorFromNative(descriptorPointer.ref, i),
-        );
-      }
-
-      completer.complete(optionDescriptors);
-    });
-
-    return completer.future;
-  }
-
-  Future<SaneOptionResult<T>> _controlOption<T>({
-    required SaneHandle handle,
-    required int index,
-    required SaneAction action,
-    T? value,
-  }) {
-    _checkIfExited();
-
-    final completer = Completer<SaneOptionResult<T>>();
-
-    Future(() {
-      final optionDescriptor = saneOptionDescriptorFromNative(
-        dylib.sane_get_option_descriptor(_getNativeHandle(handle), index).ref,
-        index,
-      );
-      final optionType = optionDescriptor.type;
-      final optionSize = optionDescriptor.size;
-
-      final infoPointer = ffi.calloc<SANE_Int>();
-
-      late final ffi.Pointer valuePointer;
-      switch (optionType) {
-        case SaneOptionValueType.bool:
-          valuePointer = ffi.calloc<SANE_Bool>(optionSize);
-
-        case SaneOptionValueType.int:
-          valuePointer = ffi.calloc<SANE_Int>(optionSize);
-
-        case SaneOptionValueType.fixed:
-          valuePointer = ffi.calloc<SANE_Word>(optionSize);
-
-        case SaneOptionValueType.string:
-          valuePointer = ffi.calloc<SANE_Char>(optionSize);
-
-        case SaneOptionValueType.button:
-          valuePointer = ffi.nullptr;
-
-        case SaneOptionValueType.group:
-          throw const SaneInvalidDataException();
-      }
-
-      if (action == SaneAction.setValue) {
-        switch (optionType) {
-          case SaneOptionValueType.bool:
-            if (value is! bool) continue invalid;
-            (valuePointer as ffi.Pointer<SANE_Bool>).value =
-                saneBoolFromDartBool(value);
-            break;
-
-          case SaneOptionValueType.int:
-            if (value is! int) continue invalid;
-            (valuePointer as ffi.Pointer<SANE_Int>).value = value;
-            break;
-
-          case SaneOptionValueType.fixed:
-            if (value is! double) continue invalid;
-            (valuePointer as ffi.Pointer<SANE_Word>).value =
-                doubleToSaneFixed(value);
-            break;
-
-          case SaneOptionValueType.string:
-            if (value is! String) continue invalid;
-            (valuePointer as ffi.Pointer<SANE_Char>).value =
-                saneStringFromDartString(value).value;
-            break;
-
-          case SaneOptionValueType.button:
-            break;
-
-          case SaneOptionValueType.group:
-            continue invalid;
-
-          invalid:
-          default:
-            throw const SaneInvalidDataException();
-        }
-      }
-
-      final status = dylib.sane_control_option(
-        _getNativeHandle(handle),
-        index,
-        nativeSaneActionFromDart(action),
-        valuePointer.cast<ffi.Void>(),
-        infoPointer,
-      );
-      logger.finest(
-        'sane_control_option($index, $action, $value) -> ${status.name}',
-      );
-
-      status.check();
-
-      final infos = saneOptionInfoFromNative(infoPointer.value);
-      late final dynamic result;
-      switch (optionType) {
-        case SaneOptionValueType.bool:
-          result = dartBoolFromSaneBool(
-            (valuePointer as ffi.Pointer<SANE_Bool>).value,
-          );
-
-        case SaneOptionValueType.int:
-          result = (valuePointer as ffi.Pointer<SANE_Int>).value;
-
-        case SaneOptionValueType.fixed:
-          result =
-              saneFixedToDouble((valuePointer as ffi.Pointer<SANE_Word>).value);
-
-        case SaneOptionValueType.string:
-          result = dartStringFromSaneString(
-                valuePointer as ffi.Pointer<SANE_Char>,
-              ) ??
-              '';
-
-        case SaneOptionValueType.button:
-          result = null;
-
-        default:
-          throw const SaneInvalidDataException();
-      }
-
-      ffi.calloc.free(valuePointer);
-      ffi.calloc.free(infoPointer);
-
-      completer.complete(
-        SaneOptionResult(
-          result: result,
-          infos: infos,
-        ),
-      );
-    });
-
-    return completer.future;
-  }
-
-  Future<SaneOptionResult<bool>> controlBoolOption({
-    required SaneHandle handle,
-    required int index,
-    required SaneAction action,
+    SaneAction action,
     bool? value,
-  }) {
-    return _controlOption<bool>(
-      handle: handle,
-      index: index,
-      action: action,
-      value: value,
-    );
-  }
+  );
 
-  Future<SaneOptionResult<int>> controlIntOption({
-    required SaneHandle handle,
-    required int index,
-    required SaneAction action,
+  FutureOr<SaneOptionResult<int>> controlIntOption(
+    int index,
+    SaneAction action,
     int? value,
-  }) {
-    return _controlOption<int>(
-      handle: handle,
-      index: index,
-      action: action,
-      value: value,
-    );
-  }
+  );
 
-  Future<SaneOptionResult<double>> controlFixedOption({
-    required SaneHandle handle,
-    required int index,
-    required SaneAction action,
+  FutureOr<SaneOptionResult<double>> controlFixedOption(
+    int index,
+    SaneAction action,
     double? value,
-  }) {
-    return _controlOption<double>(
-      handle: handle,
-      index: index,
-      action: action,
-      value: value,
-    );
-  }
+  );
 
-  Future<SaneOptionResult<String>> controlStringOption({
-    required SaneHandle handle,
-    required int index,
-    required SaneAction action,
+  FutureOr<SaneOptionResult<String>> controlStringOption(
+    int index,
+    SaneAction action,
     String? value,
-  }) {
-    return _controlOption<String>(
-      handle: handle,
-      index: index,
-      action: action,
-      value: value,
-    );
-  }
+  );
 
-  Future<SaneOptionResult<Null>> controlButtonOption({
-    required SaneHandle handle,
-    required int index,
-  }) {
-    return _controlOption<Null>(
-      handle: handle,
-      index: index,
-      action: SaneAction.setValue,
-      value: null,
-    );
-  }
+  FutureOr<SaneOptionResult<Null>> controlButtonOption(int index);
 
-  Future<SaneParameters> getParameters(SaneHandle handle) {
-    _checkIfExited();
+  FutureOr<SaneParameters> getParameters();
+}
 
-    final completer = Completer<SaneParameters>();
-
-    Future(() {
-      final nativeParametersPointer = ffi.calloc<SANE_Parameters>();
-      final status = dylib.sane_get_parameters(
-        _getNativeHandle(handle),
-        nativeParametersPointer,
-      );
-      logger.finest('sane_get_parameters() -> ${status.name}');
-
-      status.check();
-
-      final parameters = saneParametersFromNative(nativeParametersPointer.ref);
-
-      ffi.calloc.free(nativeParametersPointer);
-
-      completer.complete(parameters);
-    });
-
-    return completer.future;
-  }
-
-  Future<void> start(SaneHandle handle) {
-    _checkIfExited();
-
-    final completer = Completer<void>();
-
-    Future(() {
-      final status = dylib.sane_start(_getNativeHandle(handle));
-      logger.finest('sane_start() -> ${status.name}');
-
-      status.check();
-
-      completer.complete();
-    });
-
-    return completer.future;
-  }
-
-  Future<Uint8List> read(SaneHandle handle, int bufferSize) {
-    _checkIfExited();
-
-    final completer = Completer<Uint8List>();
-
-    Future(() {
-      final bytesReadPointer = ffi.calloc<SANE_Int>();
-      final bufferPointer = ffi.calloc<SANE_Byte>(bufferSize);
-
-      final status = dylib.sane_read(
-        _getNativeHandle(handle),
-        bufferPointer,
-        bufferSize,
-        bytesReadPointer,
-      );
-      logger.finest('sane_read() -> ${status.name}');
-
-      status.check();
-
-      final bytes = Uint8List.fromList(
-        List.generate(
-          bytesReadPointer.value,
-          (i) => (bufferPointer + i).value,
-        ),
-      );
-
-      ffi.calloc.free(bytesReadPointer);
-      ffi.calloc.free(bufferPointer);
-
-      completer.complete(bytes);
-    });
-
-    return completer.future;
-  }
-
-  Future<void> cancel(SaneHandle handle) {
-    _checkIfExited();
-
-    final completer = Completer<void>();
-
-    Future(() {
-      dylib.sane_cancel(_getNativeHandle(handle));
-      logger.finest('sane_cancel()');
-
-      completer.complete();
-    });
-
-    return completer.future;
-  }
-
-  Future<void> setIOMode(SaneHandle handle, SaneIOMode mode) {
-    _checkIfExited();
-
-    final completer = Completer<void>();
-
-    Future(() {
-      final status = dylib.sane_set_io_mode(
-        _getNativeHandle(handle),
-        saneBoolFromIOMode(mode),
-      );
-      logger.finest('sane_set_io_mode() -> ${status.name}');
-
-      status.check();
-
-      completer.complete();
-    });
-
-    return completer.future;
-  }
-
-  @pragma('vm:prefer-inline')
-  void _checkIfExited() {
-    if (_exited) throw SaneDisposedError();
-  }
+/// Predefined device types for [SaneDevice.type].
+///
+/// See also:
+///
+/// - [Predefined Device Information Strings](https://sane-project.gitlab.io/standard/api.html#vendor-names)
+abstract final class SaneDeviceTypes {
+  static const filmScanner = 'film scanner';
+  static const flatbedScanner = 'flatbed scanner';
+  static const frameGrabber = 'frame grabber';
+  static const handheldScanner = 'handheld scanner';
+  static const multiFunctionPeripheral = 'multi-function peripheral';
+  static const sheetfedScanner = 'sheetfed scanner';
+  static const stillCamera = 'still camera';
+  static const videoCamera = 'video camera';
+  static const virtualDevice = 'virtual device';
 }

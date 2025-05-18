@@ -4,7 +4,7 @@ import 'package:sane/src/sane.dart';
 class ExitMessage implements IsolateMessage {
   @override
   Future<ExitResponse> handle(Sane sane) async {
-    await sane.exit();
+    sane.dispose();
     return ExitResponse();
   }
 }
