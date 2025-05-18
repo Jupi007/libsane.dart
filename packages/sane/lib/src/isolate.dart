@@ -88,27 +88,33 @@ void _entryPoint(_EntryPointArgs args) {
 
   late StreamSubscription<_IsolateMessageEnvelope> subscription;
 
-  subscription =
-      receivePort.cast<_IsolateMessageEnvelope>().listen((envelope) async {
-    final _IsolateMessageEnvelope(:message, :replyPort) = envelope;
+  subscription = receivePort.cast<_IsolateMessageEnvelope>().listen(
+    (envelope) async {
+      final _IsolateMessageEnvelope(:message, :replyPort) = envelope;
 
-    IsolateResponse response;
+      IsolateResponse response;
 
-    try {
-      response = await message.handle(sane);
-    } on SaneException catch (exception, stackTrace) {
-      response = ExceptionResponse(
-        exception: exception,
-        stackTrace: stackTrace,
-      );
-    }
+      try {
+        response = await message.handle(sane);
+      } on SaneException catch (exception, stackTrace) {
+        response = ExceptionResponse(
+          exception: exception,
+          stackTrace: stackTrace,
+        );
+      } on SaneDisposedError catch (exception, stackTrace) {
+        response = ExceptionResponse(
+          exception: exception,
+          stackTrace: stackTrace,
+        );
+      }
 
-    replyPort.send(response);
+      replyPort.send(response);
 
-    if (message is ExitMessage) {
-      await subscription.cancel();
-    }
-  });
+      if (message is ExitMessage) {
+        await subscription.cancel();
+      }
+    },
+  );
 }
 
 class _IsolateMessageEnvelope {
