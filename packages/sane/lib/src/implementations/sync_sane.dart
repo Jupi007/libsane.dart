@@ -25,6 +25,8 @@ class SyncSane implements Sane {
   final Map<SaneHandle, SANE_Handle> _pointerHandles = {};
   SANE_Handle _getPointerHandle(SaneHandle handle) => _pointerHandles[handle]!;
 
+  ffi.NativeCallable<SANE_Auth_CallbackFunction>? _nativeAuthCallback;
+
   @override
   SaneVersion init({AuthCallback? authCallback}) {
     if (_initialized) throw SaneAlreadyInitializedError();
@@ -48,13 +50,15 @@ class SyncSane implements Sane {
     }
 
     final versionCodePointer = ffi.calloc<SANE_Int>();
-    final nativeAuthCallback = authCallback != null
+    _nativeAuthCallback = authCallback != null
         ? ffi.NativeCallable<SANE_Auth_CallbackFunction>.isolateLocal(
             authCallbackAdapter,
-          ).nativeFunction
-        : ffi.nullptr;
+          )
+        : null;
+    final callbackPtr = _nativeAuthCallback?.nativeFunction ?? ffi.nullptr;
+
     try {
-      final status = _libsane.sane_init(versionCodePointer, nativeAuthCallback);
+      final status = _libsane.sane_init(versionCodePointer, callbackPtr);
       logger.finest('sane_init() -> ${status.name}');
       status.check();
 
@@ -67,7 +71,6 @@ class SyncSane implements Sane {
       return version;
     } finally {
       ffi.calloc.free(versionCodePointer);
-      ffi.calloc.free(nativeAuthCallback);
     }
   }
 
@@ -79,11 +82,14 @@ class SyncSane implements Sane {
 
     _libsane.sane_exit();
     logger.finest('sane_exit()');
+
+    _nativeAuthCallback?.close();
+    _nativeAuthCallback = null;
   }
 
   @override
   List<SaneDevice> getDevices({required bool localOnly}) {
-    _checkIfInitialized();
+    //_checkIfInitialized();
 
     final deviceListPointer =
         ffi.calloc<ffi.Pointer<ffi.Pointer<SANE_Device>>>();

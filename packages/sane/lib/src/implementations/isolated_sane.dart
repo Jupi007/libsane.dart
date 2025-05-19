@@ -38,7 +38,9 @@ class IsolatedSane implements Sane {
   @override
   Future<SaneVersion> init({AuthCallback? authCallback}) async {
     final isolate = await _getIsolate();
-    final response = await isolate.sendMessage(InitMessage());
+    final response = await isolate.sendMessage(
+      InitMessage(authCallback),
+    );
     return response.version;
   }
 
