@@ -1,27 +1,25 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:meta/meta.dart';
 import 'package:sane/sane.dart';
-import 'package:sane/src/impl/sane_mock.dart';
-import 'package:sane/src/impl/sane_native.dart';
-import 'package:sane/src/impl/sane_sync.dart';
+import 'package:sane/src/dylib.dart';
+import 'package:sane/src/implementations/isolated_sane.dart';
+import 'package:sane/src/implementations/mock_sane.dart';
+import 'package:sane/src/implementations/native_sane.dart';
 
 typedef AuthCallback = SaneCredentials Function(String resourceName);
 
 abstract interface class Sane {
-  /// Instantiates a new asynchronous SANE instance.
-  ///
-  /// See also:
-  ///
-  /// - [Sane.sync]
-  factory Sane([Sane? backingSane]) => NativeSane(backingSane);
-
-  /// Instantiates a new synchronous SANE instance.
-  factory Sane.sync() => SyncSane();
+  /// Instantiates a new SANE instance.
+  factory Sane() => _instance ??= IsolatedSane(NativeSane(dylib));
 
   /// Instantiates a mock SANE instance for testing.
   factory Sane.mock() => MockSane();
+
+  static Sane? _instance;
+
+  /// Initializes the SANE library.
+  FutureOr<SaneVersion> init([AuthCallback? authCallback]);
 
   /// Disposes the SANE instance.
   ///
@@ -30,10 +28,7 @@ abstract interface class Sane {
   /// See also:
   ///
   /// - [`sane_exit`](https://sane-project.gitlab.io/standard/api.html#sane-exit)
-  void dispose();
-
-  /// Initializes the SANE library.
-  FutureOr<SaneVersion> initialize([AuthCallback? authCallback]);
+  FutureOr<void> exit();
 
   /// Queries the list of devices that are available.
   ///
@@ -47,29 +42,6 @@ abstract interface class Sane {
   ///
   /// - [`sane_get_devices`](https://sane-project.gitlab.io/standard/api.html#sane-get-devices)
   FutureOr<List<SaneDevice>> getDevices({required bool localOnly});
-}
-
-// TODO(Craftplacer): Turn SaneVersion into an extension type, once available.
-@immutable
-class SaneVersion {
-  const SaneVersion.fromCode(this.code);
-
-  final int code;
-
-  int get major => (code >> 24) & 0xff;
-
-  int get minor => (code >> 16) & 0xff;
-
-  int get build => (code >> 0) & 0xffff;
-
-  @override
-  String toString() => '$major.$minor.$build';
-
-  @override
-  bool operator ==(covariant SaneVersion other) => code == other.code;
-
-  @override
-  int get hashCode => code;
 }
 
 /// Represents a SANE device.

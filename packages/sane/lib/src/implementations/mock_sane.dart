@@ -2,13 +2,15 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:logging/logging.dart';
+import 'package:meta/meta.dart';
 import 'package:sane/sane.dart';
 
 final _logger = Logger('sane.mock');
 
+@internal
 class MockSane implements Sane {
   @override
-  void dispose() => _logger.finest('disposed');
+  void exit() => _logger.finest('disposed');
 
   @override
   Future<List<SaneDevDevice>> getDevices({required bool localOnly}) {
@@ -20,7 +22,7 @@ class MockSane implements Sane {
   }
 
   @override
-  SaneVersion initialize([AuthCallback? authCallback]) {
+  SaneVersion init([AuthCallback? authCallback]) {
     _logger.finest('initialized');
     return const SaneVersion.fromCode(13371337);
   }

@@ -23,7 +23,7 @@ void main() {
   });
 
   test('can exit', () {
-    expect(sane.dispose, returnsNormally);
+    expect(sane.exit, returnsNormally);
   });
 
   test('throws upon use', () {
@@ -31,12 +31,6 @@ void main() {
       () => sane.getDevices(localOnly: true),
       throwsA(isA<SaneDisposedError>()),
     );
-  });
-
-  test('can reinstiate with new instance', () {
-    final newSane = Sane(Sane.mock());
-    expect(sane, isNot(newSane));
-    sane = newSane;
   });
 
   test('doesn\'t throw upon use', () {

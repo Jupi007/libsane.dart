@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:meta/meta.dart';
 import 'package:sane/src/exceptions.dart';
-import 'package:sane/src/impl/sane_sync.dart';
 import 'package:sane/src/isolate.dart';
 import 'package:sane/src/isolate_messages/cancel.dart';
 import 'package:sane/src/isolate_messages/close.dart';
@@ -19,72 +19,34 @@ import 'package:sane/src/isolate_messages/start.dart';
 import 'package:sane/src/sane.dart';
 import 'package:sane/src/structures.dart';
 
-class NativeSane implements Sane {
-  /// Instantiates or returns a [NativeSane] instance.
-  ///
-  /// If no [backingSane] is provided, a [SyncSane] instance will be used.
-  ///
-  /// No multiple [NativeSane] instances with different backing SANEs can exist
-  /// at the same time. Call [dispose] to dispose the current instance.
-  factory NativeSane([Sane? backingSane]) {
-    // This would cause `StackOverflowError`s
-    if (backingSane is NativeSane) {
-      throw ArgumentError(
-        'NativeSane cannot be created from a NativeSane instance',
-        'backingSane',
-      );
-    }
+@internal
+class IsolatedSane implements Sane {
+  IsolatedSane(Sane backingSane) : _backingSane = backingSane;
 
-    backingSane ??= SyncSane();
-
-    // Avoid undefined behavior
-    final instance = _instance;
-    if (instance != null) {
-      if (instance.backingSane.runtimeType != backingSane.runtimeType) {
-        throw StateError(
-          'The existing NativeSane instance must be disposed before '
-          'instantiating a new one with a different backing SANE '
-          'implementation.',
-        );
-      }
-
-      // Reuse instance
-      return instance;
-    }
-
-    // Create instance
-    return _instance = NativeSane._(backingSane);
-  }
-
-  NativeSane._(this.backingSane);
-
-  final Sane backingSane;
-
-  static NativeSane? _instance;
+  final Sane _backingSane;
 
   bool _disposed = false;
   SaneIsolate? _isolate;
 
   Future<SaneIsolate> _getIsolate() async {
     if (_disposed) throw SaneDisposedError();
-    return _isolate ??= await SaneIsolate.spawn(backingSane);
+    return _isolate ??= await SaneIsolate.spawn(_backingSane);
   }
 
   @override
-  Future<SaneVersion> initialize([AuthCallback? authCallback]) async {
+  Future<SaneVersion> init([AuthCallback? authCallback]) async {
     final isolate = await _getIsolate();
     final response = await isolate.sendMessage(InitMessage());
     return response.version;
   }
 
   @override
-  Future<void> dispose({bool force = false}) async {
+  Future<void> exit({bool force = false}) async {
     final isolate = _isolate;
 
     if (_disposed) return;
 
     _disposed = true;
-    _instance = null;
 
     if (isolate == null) return;
 
@@ -112,14 +74,14 @@ class NativeSane implements Sane {
 
 class NativeSaneDevice implements SaneDevice {
   NativeSaneDevice({
-    required NativeSane sane,
+    required IsolatedSane sane,
     required this.name,
     required this.type,
     required this.vendor,
     required this.model,
   }) : _sane = sane;
 
-  final NativeSane _sane;
+  final IsolatedSane _sane;
 
   bool _closed = false;
 

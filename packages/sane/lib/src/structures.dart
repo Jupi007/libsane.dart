@@ -1,3 +1,27 @@
+import 'package:meta/meta.dart';
+
+@immutable
+class SaneVersion {
+  const SaneVersion.fromCode(this.code);
+
+  final int code;
+
+  int get major => (code >> 24) & 0xff;
+
+  int get minor => (code >> 16) & 0xff;
+
+  int get build => (code >> 0) & 0xffff;
+
+  @override
+  String toString() => '$major.$minor.$build';
+
+  @override
+  bool operator ==(covariant SaneVersion other) => code == other.code;
+
+  @override
+  int get hashCode => code;
+}
+
 class SaneCredentials {
   SaneCredentials({
     required this.username,

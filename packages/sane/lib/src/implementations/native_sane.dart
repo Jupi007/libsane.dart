@@ -4,6 +4,7 @@ import 'dart:ffi';
 import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart' as ffi;
+import 'package:meta/meta.dart';
 import 'package:sane/sane.dart';
 import 'package:sane/src/bindings.g.dart';
 import 'package:sane/src/dylib.dart';
@@ -11,17 +12,17 @@ import 'package:sane/src/extensions.dart';
 import 'package:sane/src/logger.dart';
 import 'package:sane/src/type_conversion.dart';
 
-class SyncSane implements Sane {
-  factory SyncSane() => _instance ??= SyncSane._();
+@internal
+class NativeSane implements Sane {
+  NativeSane(LibSane dylib) : _dylib = dylib;
 
-  SyncSane._();
+  final LibSane _dylib;
 
-  static SyncSane? _instance;
-  bool _disposed = false;
+  bool _initialized = false;
 
   @override
-  SaneVersion initialize([AuthCallback? authCallback]) {
-    _checkIfDisposed();
+  SaneVersion init([AuthCallback? authCallback]) {
+    _checkIfInitialized();
 
     void authCallbackAdapter(
       SANE_String_Const resource,
@@ -48,7 +49,7 @@ class SyncSane implements Sane {
           ).nativeFunction
         : ffi.nullptr;
     try {
-      final status = dylib.sane_init(versionCodePointer, nativeAuthCallback);
+      final status = _dylib.sane_init(versionCodePointer, nativeAuthCallback);
 
       logger.finest('sane_init() -> ${status.name}');
 
@@ -68,20 +69,18 @@ class SyncSane implements Sane {
   }
 
   @override
-  Future<void> dispose() {
-    if (_disposed) return Future.value();
+  Future<void> exit() {
+    if (!_initialized) return Future.value();
 
     final completer = Completer<void>();
 
     Future(() {
-      _disposed = true;
+      _initialized = false;
 
-      dylib.sane_exit();
+      _dylib.sane_exit();
       logger.finest('sane_exit()');
 
       completer.complete();
-
-      _instance = null;
     });
 
     return completer.future;
@@ -89,13 +88,13 @@ class SyncSane implements Sane {
 
   @override
   List<SyncSaneDevice> getDevices({required bool localOnly}) {
-    _checkIfDisposed();
+    _checkIfInitialized();
 
     final deviceListPointer =
         ffi.calloc<ffi.Pointer<ffi.Pointer<SANE_Device>>>();
 
     try {
-      final status = dylib.sane_get_devices(
+      final status = _dylib.sane_get_devices(
         deviceListPointer,
         localOnly.asSaneBool,
       );
@@ -118,8 +117,8 @@ class SyncSane implements Sane {
   }
 
   @pragma('vm:prefer-inline')
-  void _checkIfDisposed() {
-    if (_disposed) throw SaneDisposedError();
+  void _checkIfInitialized() {
+    if (!_initialized) throw SaneDisposedError();
   }
 }
 

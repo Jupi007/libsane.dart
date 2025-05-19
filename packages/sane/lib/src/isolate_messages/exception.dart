@@ -1,4 +1,3 @@
-import 'package:sane/src/exceptions.dart';
 import 'package:sane/src/isolate_messages/interface.dart';
 
 class ExceptionResponse implements IsolateResponse {
@@ -7,6 +6,6 @@ class ExceptionResponse implements IsolateResponse {
     required this.stackTrace,
   });
 
-  final SaneException exception;
+  final Object exception;
   final StackTrace stackTrace;
 }
