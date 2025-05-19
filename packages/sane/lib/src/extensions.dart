@@ -244,7 +244,7 @@ extension SaneBoolExtension on int {
 }
 
 extension BoolExtensions on bool {
-  DartSANE_Word get asSaneBool => this ? SANE_TRUE : SANE_FALSE;
+  DartSANE_Word toSaneBool() => this ? SANE_TRUE : SANE_FALSE;
 }
 
 const int _saneFixedScaleFactor = 1 << SANE_FIXED_SCALE_SHIFT;
@@ -260,7 +260,8 @@ extension DoubleExtension on double {
 }
 
 extension SaneStringExtension on SANE_String_Const {
-  String toDartString() => cast<ffi.Utf8>().toDartString();
+  String toDartString() =>
+      this == ffi.nullptr ? '' : cast<ffi.Utf8>().toDartString();
 }
 
 extension StringExtension on String {

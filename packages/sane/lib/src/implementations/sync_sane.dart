@@ -96,7 +96,7 @@ class SyncSane implements Sane {
     try {
       final status = _libsane.sane_get_devices(
         deviceListPointer,
-        localOnly.asSaneBool,
+        localOnly.toSaneBool(),
       );
       logger.finest('sane_get_devices() -> ${status.name}');
       status.check();
@@ -227,7 +227,7 @@ class SyncSane implements Sane {
     if (action == SaneAction.setValue) {
       switch (optionType) {
         case SaneOptionValueType.bool when value is bool:
-          (valuePointer as ffi.Pointer<SANE_Bool>).value = value.asSaneBool;
+          (valuePointer as ffi.Pointer<SANE_Bool>).value = value.toSaneBool();
           break;
 
         case SaneOptionValueType.int when value is int:
