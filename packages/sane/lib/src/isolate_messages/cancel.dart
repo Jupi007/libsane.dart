@@ -1,15 +1,15 @@
-import 'package:sane/src/isolate.dart';
 import 'package:sane/src/isolate_messages/interface.dart';
 import 'package:sane/src/sane.dart';
+import 'package:sane/src/structures.dart';
 
 class CancelMessage implements IsolateMessage {
-  CancelMessage(this.deviceName);
+  CancelMessage(this.handle);
 
-  final String deviceName;
+  final SaneHandle handle;
 
   @override
-  Future<CancelResponse> handle(Sane sane) async {
-    await getDevice(deviceName).cancel();
+  Future<CancelResponse> exec(Sane sane) async {
+    await sane.cancel(handle);
     return CancelResponse();
   }
 }

@@ -187,7 +187,15 @@ final class SaneUnsupportedException extends SaneException {
   SANE_Status get _status => SANE_Status.STATUS_UNSUPPORTED;
 }
 
-/// SANE has been exited or the device has been closed.
-final class SaneDisposedError extends StateError {
-  SaneDisposedError() : super('SANE has been exited');
+abstract interface class SaneError extends Error {}
+
+/// SANE has been exited
+final class SaneExitedError extends StateError implements SaneError {
+  SaneExitedError() : super('SANE has been exited');
+}
+
+/// SANE is already initialized
+final class SaneAlreadyInitializedError extends StateError
+    implements SaneError {
+  SaneAlreadyInitializedError() : super('SANE is already initialized');
 }

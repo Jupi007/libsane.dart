@@ -1,15 +1,15 @@
-import 'package:sane/src/isolate.dart';
 import 'package:sane/src/isolate_messages/interface.dart';
 import 'package:sane/src/sane.dart';
+import 'package:sane/src/structures.dart';
 
 class StartMessage implements IsolateMessage {
-  const StartMessage(this.deviceName);
+  StartMessage(this.handle);
 
-  final String deviceName;
+  final SaneHandle handle;
 
   @override
-  Future<StartResponse> handle(Sane sane) async {
-    getDevice(deviceName).start();
+  Future<StartResponse> exec(Sane sane) async {
+    await sane.start(handle);
     return StartResponse();
   }
 }

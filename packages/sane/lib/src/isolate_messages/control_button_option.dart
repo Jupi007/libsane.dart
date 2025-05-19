@@ -1,22 +1,20 @@
-import 'package:sane/src/isolate.dart';
 import 'package:sane/src/isolate_messages/interface.dart';
 import 'package:sane/src/sane.dart';
 import 'package:sane/src/structures.dart';
 
 class ControlButtonOptionMessage
     implements IsolateMessage<ControlButtonOptionResponse> {
-  const ControlButtonOptionMessage({
-    required this.deviceName,
-    required this.index,
-  });
+  const ControlButtonOptionMessage(this.handle, this.index);
 
-  final String deviceName;
+  final SaneHandle handle;
   final int index;
 
   @override
-  Future<ControlButtonOptionResponse> handle(Sane sane) async {
-    final device = getDevice(deviceName);
-    final result = await device.controlButtonOption(index);
+  Future<ControlButtonOptionResponse> exec(Sane sane) async {
+    final result = await sane.controlButtonOption(
+      handle: handle,
+      index: index,
+    );
     return ControlButtonOptionResponse(result);
   }
 }

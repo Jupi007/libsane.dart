@@ -12,7 +12,7 @@ void main(List<String> args) async {
     print('${record.level.name}: ${record.time}: ${record.message}');
   });
 
-  final sane = Sane.mock();
+  final sane = Sane();
 
   final version = await sane.init();
 
@@ -28,35 +28,37 @@ void main(List<String> args) async {
   }
 
   final device = devices.first;
+  final handle = await sane.openDevice(device);
 
-  final optionDescriptors = await device.getAllOptionDescriptors();
+  final optionDescriptors = await sane.getAllOptionDescriptors(handle);
 
   for (final optionDescriptor in optionDescriptors) {
     if (optionDescriptor.name == 'mode') {
-      await device.controlStringOption(
-        optionDescriptor.index,
-        SaneAction.setValue,
-        'Color',
+      await sane.controlStringOption(
+        handle: handle,
+        index: optionDescriptor.index,
+        action: SaneAction.setValue,
+        value: 'Color',
       );
       break;
     }
   }
 
-  await device.start();
+  await sane.start(handle);
 
-  final parameters = await device.getParameters();
+  final parameters = await sane.getParameters(handle);
   print('Parameters: format(${parameters.format}), depth(${parameters.depth})');
 
   final rawPixelDataList = <Uint8List>[];
   Uint8List? bytes;
   while (true) {
-    bytes = await device.read(bufferSize: parameters.bytesPerLine);
+    bytes = await sane.read(handle, parameters.bytesPerLine);
     if (bytes.isEmpty) break;
     rawPixelDataList.add(bytes);
   }
 
-  await device.cancel();
-  await device.close();
+  await sane.cancel(handle);
+  await sane.close(handle);
 
   Uint8List mergeUint8Lists(List<Uint8List> lists) {
     final totalLength = lists.fold(0, (length, list) => length + list.length);

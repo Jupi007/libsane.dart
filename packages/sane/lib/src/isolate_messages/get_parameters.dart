@@ -1,17 +1,15 @@
-import 'package:sane/src/isolate.dart';
 import 'package:sane/src/isolate_messages/interface.dart';
 import 'package:sane/src/sane.dart';
 import 'package:sane/src/structures.dart';
 
 class GetParametersMessage implements IsolateMessage<GetParametersResponse> {
-  const GetParametersMessage(this.deviceName);
+  const GetParametersMessage(this.handle);
 
-  final String deviceName;
+  final SaneHandle handle;
 
   @override
-  Future<GetParametersResponse> handle(Sane sane) async {
-    final device = getDevice(deviceName);
-    final parameters = await device.getParameters();
+  Future<GetParametersResponse> exec(Sane sane) async {
+    final parameters = await sane.getParameters(handle);
     return GetParametersResponse(parameters);
   }
 }

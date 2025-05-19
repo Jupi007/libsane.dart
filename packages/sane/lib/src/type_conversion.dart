@@ -6,6 +6,16 @@ import 'package:sane/src/bindings.g.dart';
 import 'package:sane/src/structures.dart';
 
 @internal
+SaneDevice saneDeviceFromNative(SANE_Device device) {
+  return SaneDevice(
+    name: device.name.toDartString(),
+    vendor: device.vendor.toDartString(),
+    model: device.model.toDartString(),
+    type: device.type.toDartString(),
+  );
+}
+
+@internal
 SaneFrameFormat saneFrameFormatFromNative(SANE_Frame frame) {
   return switch (frame) {
     SANE_Frame.FRAME_GRAY => SaneFrameFormat.gray,
@@ -223,4 +233,12 @@ double saneFixedToDouble(int saneFixed) {
 @internal
 int doubleToSaneFixed(double double) {
   return (double * _saneFixedScaleFactor).toInt();
+}
+
+@internal
+DartSANE_Word saneBoolFromIOMode(SaneIOMode mode) {
+  return switch (mode) {
+    SaneIOMode.blocking => SANE_FALSE,
+    SaneIOMode.nonBlocking => SANE_TRUE,
+  };
 }

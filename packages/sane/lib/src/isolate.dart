@@ -95,13 +95,13 @@ void _entryPoint(_EntryPointArgs args) {
       IsolateResponse response;
 
       try {
-        response = await message.handle(sane);
+        response = await message.exec(sane);
       } on SaneException catch (exception, stackTrace) {
         response = ExceptionResponse(
           exception: exception,
           stackTrace: stackTrace,
         );
-      } on SaneDisposedError catch (exception, stackTrace) {
+      } on SaneError catch (exception, stackTrace) {
         response = ExceptionResponse(
           exception: exception,
           stackTrace: stackTrace,
@@ -125,16 +125,4 @@ class _IsolateMessageEnvelope {
 
   final SendPort replyPort;
   final IsolateMessage message;
-}
-
-late Map<String, SaneDevice> _devices;
-
-@internal
-SaneDevice getDevice(String name) => _devices[name]!;
-
-@internal
-void setDevices(Iterable<SaneDevice> devices) {
-  _devices = {
-    for (final device in devices) device.name: device,
-  };
 }

@@ -2,24 +2,23 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:sane/sane.dart';
-import 'package:sane/src/dylib.dart';
 import 'package:sane/src/implementations/isolated_sane.dart';
 import 'package:sane/src/implementations/mock_sane.dart';
-import 'package:sane/src/implementations/native_sane.dart';
+import 'package:sane/src/implementations/sync_sane.dart';
 
 typedef AuthCallback = SaneCredentials Function(String resourceName);
 
 abstract interface class Sane {
   /// Instantiates a new SANE instance.
-  factory Sane() => _instance ??= IsolatedSane(NativeSane(dylib));
+  factory Sane() => _instance ??= IsolatedSane(SyncSane());
 
-  /// Instantiates a mock SANE instance for testing.
+  /// Instantiates a mock SANE instance for testing without a real scanner.
   factory Sane.mock() => MockSane();
 
   static Sane? _instance;
 
   /// Initializes the SANE library.
-  FutureOr<SaneVersion> init([AuthCallback? authCallback]);
+  FutureOr<SaneVersion> init({AuthCallback? authCallback});
 
   /// Disposes the SANE instance.
   ///
@@ -42,70 +41,61 @@ abstract interface class Sane {
   ///
   /// - [`sane_get_devices`](https://sane-project.gitlab.io/standard/api.html#sane-get-devices)
   FutureOr<List<SaneDevice>> getDevices({required bool localOnly});
-}
 
-/// Represents a SANE device.
-///
-/// Devices can be retrieved using [Sane.getDevices].
-///
-/// See also:
-///
-/// - [Device Descriptor Type](https://sane-project.gitlab.io/standard/api.html#device-descriptor-type)
-abstract interface class SaneDevice {
-  /// The name of the device.
-  String get name;
+  FutureOr<SaneHandle> open(String deviceName);
 
-  /// The type of the device.
-  ///
-  /// For a list of predefined types, see [SaneDeviceTypes].
-  String get type;
-
-  /// The vendor (manufacturer) of the device.
-  ///
-  /// Can be `null` for virtual devices that have no physical vendor associated.
-  String? get vendor;
-
-  /// The model of the device.
-  String get model;
+  FutureOr<SaneHandle> openDevice(SaneDevice device);
 
   /// Disposes the SANE device. Infers [cancel].
   ///
   /// See also:
   ///
   /// - [`sane_close`](https://sane-project.gitlab.io/standard/api.html#sane-close)
-  FutureOr<void> close();
+  FutureOr<void> close(SaneHandle handle);
 
-  /// Tries to cancel the currently pending operation of the device immediately
-  /// or as quickly as possible.
-  ///
-  /// See also:
-  ///
-  /// - [`sane_cancel`](https://sane-project.gitlab.io/standard/api.html#sane-cancel)
-  FutureOr<void> cancel();
+  FutureOr<SaneOptionDescriptor> getOptionDescriptor(
+    SaneHandle handle,
+    int index,
+  );
 
-  /// Reads image data from the device.
-  ///
-  /// The returned [Uint8List] is [bufferSize] bytes long or less. If it is
-  /// zero, the end of the frame has been reached.
-  ///
-  /// Exceptions:
-  ///
-  /// - Throws [SaneCancelledException] if the operation was cancelled through
-  ///   a call to [cancel].
-  /// - Throws [SaneJammedException] if the document feeder is jammed.
-  /// - Throws [SaneNoDocumentsException] if the document feeder is out of
-  ///   documents.
-  /// - Throws [SaneCoverOpenException] if the scanner cover is open.
-  /// - Throws [SaneIoException] if an error occurred while communicating with
-  ///   the device.
-  /// - Throws [SaneNoMemoryException] if no memory is available.
-  /// - Throws [SaneAccessDeniedException] if access to the device has been
-  ///   denied due to insufficient or invalid authentication.
-  ///
-  /// See also:
-  ///
-  /// - [`sane_read`](https://sane-project.gitlab.io/standard/api.html#sane-read)
-  FutureOr<Uint8List> read({required int bufferSize});
+  FutureOr<List<SaneOptionDescriptor>> getAllOptionDescriptors(
+    SaneHandle handle,
+  );
+
+  FutureOr<SaneOptionResult<bool>> controlBoolOption({
+    required SaneHandle handle,
+    required int index,
+    required SaneAction action,
+    bool? value,
+  });
+
+  FutureOr<SaneOptionResult<int>> controlIntOption({
+    required SaneHandle handle,
+    required int index,
+    required SaneAction action,
+    int? value,
+  });
+
+  FutureOr<SaneOptionResult<double>> controlFixedOption({
+    required SaneHandle handle,
+    required int index,
+    required SaneAction action,
+    double? value,
+  });
+
+  FutureOr<SaneOptionResult<String>> controlStringOption({
+    required SaneHandle handle,
+    required int index,
+    required SaneAction action,
+    String? value,
+  });
+
+  FutureOr<SaneOptionResult<Null>> controlButtonOption({
+    required SaneHandle handle,
+    required int index,
+  });
+
+  FutureOr<SaneParameters> getParameters(SaneHandle handle);
 
   /// Initiates acquisition of an image from the device.
   ///
@@ -129,39 +119,41 @@ abstract interface class SaneDevice {
   /// See also:
   ///
   /// - [`sane_start`](https://sane-project.gitlab.io/standard/api.html#sane-start)
-  FutureOr<void> start();
+  FutureOr<void> start(SaneHandle handle);
 
-  FutureOr<SaneOptionDescriptor> getOptionDescriptor(int index);
+  /// Reads image data from the device.
+  ///
+  /// The returned [Uint8List] is [bufferSize] bytes long or less. If it is
+  /// zero, the end of the frame has been reached.
+  ///
+  /// Exceptions:
+  ///
+  /// - Throws [SaneCancelledException] if the operation was cancelled through
+  ///   a call to [cancel].
+  /// - Throws [SaneJammedException] if the document feeder is jammed.
+  /// - Throws [SaneNoDocumentsException] if the document feeder is out of
+  ///   documents.
+  /// - Throws [SaneCoverOpenException] if the scanner cover is open.
+  /// - Throws [SaneIoException] if an error occurred while communicating with
+  ///   the device.
+  /// - Throws [SaneNoMemoryException] if no memory is available.
+  /// - Throws [SaneAccessDeniedException] if access to the device has been
+  ///   denied due to insufficient or invalid authentication.
+  ///
+  /// See also:
+  ///
+  /// - [`sane_read`](https://sane-project.gitlab.io/standard/api.html#sane-read)
+  FutureOr<Uint8List> read(SaneHandle handle, int bufferSize);
 
-  FutureOr<List<SaneOptionDescriptor>> getAllOptionDescriptors();
+  /// Tries to cancel the currently pending operation of the device immediately
+  /// or as quickly as possible.
+  ///
+  /// See also:
+  ///
+  /// - [`sane_cancel`](https://sane-project.gitlab.io/standard/api.html#sane-cancel)
+  FutureOr<void> cancel(SaneHandle handle);
 
-  FutureOr<SaneOptionResult<bool>> controlBoolOption(
-    int index,
-    SaneAction action,
-    bool? value,
-  );
-
-  FutureOr<SaneOptionResult<int>> controlIntOption(
-    int index,
-    SaneAction action,
-    int? value,
-  );
-
-  FutureOr<SaneOptionResult<double>> controlFixedOption(
-    int index,
-    SaneAction action,
-    double? value,
-  );
-
-  FutureOr<SaneOptionResult<String>> controlStringOption(
-    int index,
-    SaneAction action,
-    String? value,
-  );
-
-  FutureOr<SaneOptionResult<Null>> controlButtonOption(int index);
-
-  FutureOr<SaneParameters> getParameters();
+  FutureOr<void> setIOMode(SaneHandle handle, SaneIOMode mode);
 }
 
 /// Predefined device types for [SaneDevice.type].
