@@ -9,7 +9,6 @@ import 'package:sane/src/bindings.g.dart';
 import 'package:sane/src/dylib.dart';
 import 'package:sane/src/extensions.dart';
 import 'package:sane/src/logger.dart';
-import 'package:sane/src/type_conversion.dart';
 
 @internal
 class SyncSane implements Sane {
@@ -105,7 +104,7 @@ class SyncSane implements Sane {
       final devices = <SaneDevice>[];
       for (var i = 0; deviceListPointer.value[i] != ffi.nullptr; i++) {
         final nativeDevice = deviceListPointer.value[i].ref;
-        devices.add(saneDeviceFromNative(nativeDevice));
+        devices.add(nativeDevice.toSaneDevice());
       }
 
       return List.unmodifiable(devices);
@@ -164,10 +163,7 @@ class SyncSane implements Sane {
         _libsane.sane_get_option_descriptor(_getPointerHandle(handle), index);
 
     try {
-      return saneOptionDescriptorFromNative(
-        optionDescriptorPointer.ref,
-        index,
-      );
+      return optionDescriptorPointer.ref.toSaneOptionDescriptorWithIndex(index);
     } finally {
       ffi.calloc.free(optionDescriptorPointer);
     }
@@ -187,7 +183,7 @@ class SyncSane implements Sane {
       try {
         if (descriptorPointer == ffi.nullptr) break;
         optionDescriptors.add(
-          saneOptionDescriptorFromNative(descriptorPointer.ref, i),
+          descriptorPointer.ref.toSaneOptionDescriptorWithIndex(i),
         );
       } finally {
         ffi.calloc.free(descriptorPointer);
@@ -205,10 +201,11 @@ class SyncSane implements Sane {
   }) {
     _checkIfInitialized();
 
-    final optionDescriptor = saneOptionDescriptorFromNative(
-      _libsane.sane_get_option_descriptor(_getPointerHandle(handle), index).ref,
-      index,
-    );
+    final nativeOptionDescriptor = _libsane
+        .sane_get_option_descriptor(_getPointerHandle(handle), index)
+        .ref;
+    final optionDescriptor =
+        nativeOptionDescriptor.toSaneOptionDescriptorWithIndex(index);
     final optionType = optionDescriptor.type;
     final optionSize = optionDescriptor.size;
 
@@ -238,8 +235,7 @@ class SyncSane implements Sane {
           break;
 
         case SaneOptionValueType.fixed when value is double:
-          (valuePointer as ffi.Pointer<SANE_Word>).value =
-              doubleToSaneFixed(value);
+          (valuePointer as ffi.Pointer<SANE_Word>).value = value.toSaneFixed();
           break;
 
         case SaneOptionValueType.string when value is String:
@@ -259,7 +255,7 @@ class SyncSane implements Sane {
     final status = _libsane.sane_control_option(
       _getPointerHandle(handle),
       index,
-      nativeSaneActionFromDart(action),
+      action.toNativeSaneAction(),
       valuePointer.cast<ffi.Void>(),
       infoPointer,
     );
@@ -269,20 +265,17 @@ class SyncSane implements Sane {
 
     status.check();
 
-    final infos = saneOptionInfoFromNative(infoPointer.value);
+    final infos = infoPointer.value.toSaneOptionInfoList();
     late final dynamic result;
     switch (optionType) {
       case SaneOptionValueType.bool:
-        result = dartBoolFromSaneBool(
-          (valuePointer as ffi.Pointer<SANE_Bool>).value,
-        );
+        result = (valuePointer as ffi.Pointer<SANE_Bool>).value.toDartBool();
 
       case SaneOptionValueType.int:
         result = (valuePointer as ffi.Pointer<SANE_Int>).value;
 
       case SaneOptionValueType.fixed:
-        result =
-            saneFixedToDouble((valuePointer as ffi.Pointer<SANE_Word>).value);
+        result = (valuePointer as ffi.Pointer<SANE_Word>).value.toDartDouble();
 
       case SaneOptionValueType.string:
         result = (valuePointer as ffi.Pointer<SANE_Char>).toDartString();
@@ -391,7 +384,7 @@ class SyncSane implements Sane {
 
       status.check();
 
-      return saneParametersFromNative(nativeParametersPointer.ref);
+      return nativeParametersPointer.ref.toSaneParameters();
     } finally {
       ffi.calloc.free(nativeParametersPointer);
     }
@@ -449,7 +442,7 @@ class SyncSane implements Sane {
 
     final status = _libsane.sane_set_io_mode(
       _getPointerHandle(handle),
-      saneBoolFromIOMode(mode),
+      mode.toNativeSaneBool(),
     );
     logger.finest('sane_set_io_mode() -> ${status.name}');
 
