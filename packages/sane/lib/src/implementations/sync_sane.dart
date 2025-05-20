@@ -239,8 +239,12 @@ class SyncSane implements Sane {
           break;
 
         case SaneOptionValueType.string when value is String:
-          (valuePointer as ffi.Pointer<SANE_String_Const>).value =
-              value.toSaneString();
+          final utf8Value = value.toNativeUtf8();
+          valuePointer.cast<Uint8>().asTypedList(optionSize).setAll(
+                0,
+                utf8Value.cast<Uint8>().asTypedList(optionSize),
+              );
+          ffi.calloc.free(utf8Value);
           break;
 
         case SaneOptionValueType.button:
