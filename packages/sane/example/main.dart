@@ -18,7 +18,7 @@ void main(List<String> args) async {
 
   print(version);
 
-  final devices = await sane.getDevices(localOnly: false);
+  final devices = await sane.getDevices(localOnly: true);
   for (final device in devices) {
     print('Device found: ${device.name}');
   }
