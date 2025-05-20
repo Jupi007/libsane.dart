@@ -162,7 +162,7 @@ class SyncSane implements Sane {
     final optionDescriptorPointer =
         _libsane.sane_get_option_descriptor(_getPointerHandle(handle), index);
 
-      return optionDescriptorPointer.ref.toSaneOptionDescriptorWithIndex(index);
+    return optionDescriptorPointer.ref.toSaneOptionDescriptorWithIndex(index);
   }
 
   @override
@@ -178,9 +178,9 @@ class SyncSane implements Sane {
           _libsane.sane_get_option_descriptor(_getPointerHandle(handle), i);
 
       if (optionDescriptorPointer == ffi.nullptr) break;
-        optionDescriptors.add(
+      optionDescriptors.add(
         optionDescriptorPointer.ref.toSaneOptionDescriptorWithIndex(i),
-        );
+      );
     }
 
     return optionDescriptors;
@@ -194,17 +194,16 @@ class SyncSane implements Sane {
   }) {
     _checkIfInitialized();
 
-    final nativeOptionDescriptor = _libsane
+    final optionDescriptor = _libsane
         .sane_get_option_descriptor(_getPointerHandle(handle), index)
-        .ref;
-    final optionDescriptor =
-        nativeOptionDescriptor.toSaneOptionDescriptorWithIndex(index);
+        .ref
+        .toSaneOptionDescriptorWithIndex(index);
     final optionType = optionDescriptor.type;
     final optionSize = optionDescriptor.size;
 
     final infoPointer = ffi.calloc<SANE_Int>();
 
-    ffi.Pointer allocateOptionValue() {
+    final valuePointer = () {
       return switch (optionType) {
         SaneOptionValueType.bool => ffi.calloc<SANE_Bool>(optionSize),
         SaneOptionValueType.int => ffi.calloc<SANE_Int>(optionSize),
@@ -213,9 +212,7 @@ class SyncSane implements Sane {
         SaneOptionValueType.button => ffi.nullptr,
         SaneOptionValueType.group => throw const SaneInvalidDataException(),
       };
-    }
-
-    final valuePointer = allocateOptionValue();
+    }();
 
     if (action == SaneAction.setValue) {
       switch (optionType) {
@@ -411,7 +408,10 @@ class SyncSane implements Sane {
         bufferSize,
         lengthPointer,
       );
-      status.check();
+
+      try {
+        status.check();
+      } on SaneEofException catch (_) {}
 
       logger.finest('sane_read() -> ${status.name}');
 
