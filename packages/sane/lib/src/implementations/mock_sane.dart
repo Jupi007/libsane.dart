@@ -27,9 +27,7 @@ class MockSane implements Sane {
   }
 
   @override
-  Future<List<SaneDevice>> getDevices({
-    required bool localOnly,
-  }) {
+  Future<List<SaneDevice>> getDevices({bool localOnly = true}) {
     return Future.delayed(const Duration(seconds: 1), () {
       _logger.finest('sane_getDevices()');
       return [

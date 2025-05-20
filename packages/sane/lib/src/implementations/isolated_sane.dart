@@ -60,9 +60,7 @@ class IsolatedSane implements Sane {
   }
 
   @override
-  Future<List<SaneDevice>> getDevices({
-    required bool localOnly,
-  }) async {
+  Future<List<SaneDevice>> getDevices({bool localOnly = true}) async {
     final isolate = await _getIsolate();
     final response = await isolate.sendMessage(
       GetDevicesMessage(localOnly: localOnly),

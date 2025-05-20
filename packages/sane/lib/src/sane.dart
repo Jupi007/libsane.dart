@@ -40,7 +40,7 @@ abstract interface class Sane {
   /// See also:
   ///
   /// - [`sane_get_devices`](https://sane-project.gitlab.io/standard/api.html#sane-get-devices)
-  FutureOr<List<SaneDevice>> getDevices({required bool localOnly});
+  FutureOr<List<SaneDevice>> getDevices({bool localOnly = true});
 
   FutureOr<SaneHandle> open(String deviceName);
 

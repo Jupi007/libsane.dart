@@ -87,8 +87,8 @@ class SyncSane implements Sane {
   }
 
   @override
-  List<SaneDevice> getDevices({required bool localOnly}) {
-    //_checkIfInitialized();
+  List<SaneDevice> getDevices({bool localOnly = true}) {
+    _checkIfInitialized();
 
     final deviceListPointer =
         ffi.calloc<ffi.Pointer<ffi.Pointer<SANE_Device>>>();
