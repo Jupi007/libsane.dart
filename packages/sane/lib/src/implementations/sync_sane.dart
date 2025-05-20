@@ -162,11 +162,7 @@ class SyncSane implements Sane {
     final optionDescriptorPointer =
         _libsane.sane_get_option_descriptor(_getPointerHandle(handle), index);
 
-    try {
       return optionDescriptorPointer.ref.toSaneOptionDescriptorWithIndex(index);
-    } finally {
-      ffi.calloc.free(optionDescriptorPointer);
-    }
   }
 
   @override
@@ -178,16 +174,13 @@ class SyncSane implements Sane {
     final optionDescriptors = <SaneOptionDescriptor>[];
 
     for (var i = 0; true; i++) {
-      final descriptorPointer =
+      final optionDescriptorPointer =
           _libsane.sane_get_option_descriptor(_getPointerHandle(handle), i);
-      try {
-        if (descriptorPointer == ffi.nullptr) break;
+
+      if (optionDescriptorPointer == ffi.nullptr) break;
         optionDescriptors.add(
-          descriptorPointer.ref.toSaneOptionDescriptorWithIndex(i),
+        optionDescriptorPointer.ref.toSaneOptionDescriptorWithIndex(i),
         );
-      } finally {
-        ffi.calloc.free(descriptorPointer);
-      }
     }
 
     return optionDescriptors;
