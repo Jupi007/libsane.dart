@@ -34,6 +34,6 @@ void main() {
   });
 
   test('doesn\'t throw upon use', () {
-    expect(() => sane.getDevices(localOnly: true), returnsNormally);
+    expect(sane.init, returnsNormally);
   });
 }
