@@ -1,5 +1,4 @@
 import 'dart:ffi' as ffi;
-import 'dart:ffi';
 import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart' as ffi;
@@ -230,9 +229,9 @@ class SyncSane implements Sane {
 
         case SaneOptionValueType.string when value is String:
           final utf8Value = value.toNativeUtf8();
-          valuePointer.cast<Uint8>().asTypedList(optionSize).setAll(
+          valuePointer.cast<ffi.Uint8>().asTypedList(optionSize).setAll(
                 0,
-                utf8Value.cast<Uint8>().asTypedList(optionSize),
+                utf8Value.cast<ffi.Uint8>().asTypedList(optionSize),
               );
           ffi.calloc.free(utf8Value);
           break;
@@ -416,7 +415,7 @@ class SyncSane implements Sane {
       logger.finest('sane_read() -> ${status.name}');
 
       final length = lengthPointer.value;
-      final buffer = bufferPointer.cast<Uint8>().asTypedList(length);
+      final buffer = bufferPointer.cast<ffi.Uint8>().asTypedList(length);
 
       return buffer;
     } finally {
