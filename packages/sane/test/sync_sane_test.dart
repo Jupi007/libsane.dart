@@ -99,16 +99,6 @@ void main() {
       ),
     );
 
-    // TODO: check for non LATIN-1 string
-    // test(
-    //   'and special characters credentials',
-    //   () => testCase(
-    //     username: '↓ß€¶”æµ€',
-    //     password: 'þæßßłø¶ð',
-    //     resourceName: '¶€ßø↓¶¢€’æµ€',
-    //   ),
-    // );
-
     test(
       'and overflow credentials',
       () => testCase(
@@ -119,6 +109,8 @@ void main() {
         resourceName: 'r' * 512,
       ),
     );
+
+    // TODO: test invalid LATIN-1 characters
   });
 
   test('Test sane init throw exception with wrong status', () {
