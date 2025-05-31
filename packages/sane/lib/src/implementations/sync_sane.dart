@@ -34,17 +34,36 @@ class SyncSane implements Sane {
       ffi.Pointer<SANE_Char> username,
       ffi.Pointer<SANE_Char> password,
     ) {
-      final credentials = authCallback!(resource.toDartString());
-      for (var i = 0;
-          i < credentials.username.length && i < SANE_MAX_USERNAME_LEN;
-          i++) {
-        username[i] = credentials.username.codeUnitAt(i);
+      final credentials =
+          authCallback!(resource.cast<ffi.Utf8>().toDartString());
+      final usernameUtf8 = credentials.username.toSaneString();
+      final passwordUtf8 = credentials.password.toSaneString();
+
+      final usernameBytes = usernameUtf8.cast<ffi.Uint8>();
+      final passwordBytes = passwordUtf8.cast<ffi.Uint8>();
+
+      for (var i = 0; true; i++) {
+        if (i < SANE_MAX_USERNAME_LEN - 1 && usernameBytes[i] != 0) {
+          username[i] = usernameBytes[i];
+          continue;
+        }
+
+        username[i] = 0;
+        break;
       }
-      for (var i = 0;
-          i < credentials.password.length && i < SANE_MAX_PASSWORD_LEN;
-          i++) {
-        password[i] = credentials.password.codeUnitAt(i);
+
+      for (var i = 0; true; i++) {
+        if (i < SANE_MAX_PASSWORD_LEN - 1 && passwordBytes[i] != 0) {
+          password[i] = passwordBytes[i];
+          continue;
+        }
+
+        password[i] = 0;
+        break;
       }
+
+      ffi.calloc.free(usernameUtf8);
+      ffi.calloc.free(passwordUtf8);
     }
 
     final versionCodePointer = ffi.calloc<SANE_Int>();
@@ -416,7 +435,7 @@ class SyncSane implements Sane {
 
       final length = lengthPointer.value;
       return Uint8List.fromList(
-bufferPointer.cast<ffi.Uint8>().asTypedList(length),
+        bufferPointer.cast<ffi.Uint8>().asTypedList(length),
       );
     } finally {
       ffi.calloc.free(lengthPointer);
