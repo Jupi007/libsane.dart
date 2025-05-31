@@ -3,7 +3,6 @@ import 'dart:typed_data';
 
 import 'package:sane/sane.dart';
 import 'package:sane/src/implementations/isolated_sane.dart';
-import 'package:sane/src/implementations/mock_sane.dart';
 import 'package:sane/src/implementations/sync_sane.dart';
 
 typedef AuthCallback = SaneCredentials Function(String resourceName);
@@ -11,9 +10,6 @@ typedef AuthCallback = SaneCredentials Function(String resourceName);
 abstract interface class Sane {
   /// Instantiates a new SANE instance.
   factory Sane() => _instance ??= IsolatedSane(SyncSane());
-
-  /// Instantiates a mock SANE instance for testing without a real scanner.
-  factory Sane.mock() => MockSane();
 
   static Sane? _instance;
 
