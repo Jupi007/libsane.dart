@@ -33,39 +33,31 @@ class SyncSane implements Sane {
 
     void authCallbackAdapter(
       SANE_String_Const resource,
-      ffi.Pointer<SANE_Char> username,
-      ffi.Pointer<SANE_Char> password,
+      ffi.Pointer<SANE_Char> usernamePointer,
+      ffi.Pointer<SANE_Char> passwordPointer,
     ) {
+      void copyToPointer(ffi.Pointer<SANE_Char> pointer, String string) {
+        final utf8String = string.toSaneString();
+        final stringBytes = utf8String.cast<ffi.Uint8>();
+
+        for (var i = 0; true; i++) {
+          if (i < SANE_MAX_USERNAME_LEN - 1 && stringBytes[i] != 0) {
+            pointer[i] = stringBytes[i];
+            continue;
+          }
+
+          pointer[i] = 0;
+          break;
+        }
+
+        ffi.calloc.free(utf8String);
+      }
+
       final credentials =
           authCallback!(resource.cast<ffi.Utf8>().toDartString());
-      final usernameUtf8 = credentials.username.toSaneString();
-      final passwordUtf8 = credentials.password.toSaneString();
 
-      final usernameBytes = usernameUtf8.cast<ffi.Uint8>();
-      final passwordBytes = passwordUtf8.cast<ffi.Uint8>();
-
-      for (var i = 0; true; i++) {
-        if (i < SANE_MAX_USERNAME_LEN - 1 && usernameBytes[i] != 0) {
-          username[i] = usernameBytes[i];
-          continue;
-        }
-
-        username[i] = 0;
-        break;
-      }
-
-      for (var i = 0; true; i++) {
-        if (i < SANE_MAX_PASSWORD_LEN - 1 && passwordBytes[i] != 0) {
-          password[i] = passwordBytes[i];
-          continue;
-        }
-
-        password[i] = 0;
-        break;
-      }
-
-      ffi.calloc.free(usernameUtf8);
-      ffi.calloc.free(passwordUtf8);
+      copyToPointer(usernamePointer, credentials.username);
+      copyToPointer(passwordPointer, credentials.password);
     }
 
     final versionCodePointer = ffi.calloc<SANE_Int>();
@@ -472,6 +464,6 @@ class SyncSane implements Sane {
 
   @pragma('vm:prefer-inline')
   void _checkIfInitialized() {
-    if (!_initialized) throw SaneExitedError();
+    if (!_initialized) throw SaneNotInitializedError();
   }
 }

@@ -14,9 +14,7 @@ void main(List<String> args) async {
 
   final sane = Sane();
 
-  final version = await sane.init();
-
-  print(version);
+  await sane.init();
 
   final devices = await sane.getDevices(localOnly: true);
   for (final device in devices) {
@@ -60,6 +58,8 @@ void main(List<String> args) async {
   await sane.cancel(handle);
   await sane.close(handle);
 
+  await sane.exit();
+
   Uint8List mergeUint8Lists(List<Uint8List> lists) {
     final totalLength = lists.fold(0, (length, list) => length + list.length);
     final result = Uint8List(totalLength);
@@ -79,6 +79,4 @@ void main(List<String> args) async {
   );
   final rawPixelData = mergeUint8Lists(rawPixelDataList);
   file.writeAsBytesSync(rawPixelData, mode: FileMode.append);
-
-  await sane.exit();
 }

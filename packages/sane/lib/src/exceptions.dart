@@ -190,8 +190,9 @@ final class SaneUnsupportedException extends SaneException {
 abstract interface class SaneError extends Error {}
 
 /// SANE has been exited
-final class SaneExitedError extends StateError implements SaneError {
-  SaneExitedError() : super('SANE has been exited');
+final class SaneNotInitializedError extends StateError implements SaneError {
+  SaneNotInitializedError()
+      : super('SANE isn\'t initialized, please call init()');
 }
 
 /// SANE is already initialized
