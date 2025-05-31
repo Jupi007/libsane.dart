@@ -415,9 +415,9 @@ class SyncSane implements Sane {
       logger.finest('sane_read() -> ${status.name}');
 
       final length = lengthPointer.value;
-      final buffer = bufferPointer.cast<ffi.Uint8>().asTypedList(length);
-
-      return buffer;
+      return Uint8List.fromList(
+bufferPointer.cast<ffi.Uint8>().asTypedList(length),
+      );
     } finally {
       ffi.calloc.free(lengthPointer);
       ffi.calloc.free(bufferPointer);
