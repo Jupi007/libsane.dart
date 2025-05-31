@@ -79,6 +79,7 @@ class SyncSane implements Sane {
     try {
       final status = _libsane.sane_init(versionCodePointer, callbackPtr);
       _logger.finest('sane_init() -> ${status.name}');
+
       status.check();
 
       final versionCode = versionCodePointer.value;
@@ -119,6 +120,7 @@ class SyncSane implements Sane {
         localOnly.toSaneBool(),
       );
       _logger.finest('sane_get_devices() -> ${status.name}');
+
       status.check();
 
       final devices = <SaneDevice>[];
@@ -144,6 +146,7 @@ class SyncSane implements Sane {
     try {
       final status = _libsane.sane_open(deviceNamePointer, nativeHandlePointer);
       _logger.finest('sane_open() -> ${status.name}');
+
       status.check();
 
       handle = SaneHandle(deviceName: deviceName);
@@ -428,6 +431,7 @@ class SyncSane implements Sane {
         bufferSize,
         lengthPointer,
       );
+      _logger.finest('sane_read() -> ${status.name}');
 
       try {
         status.check();
