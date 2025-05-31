@@ -2,12 +2,14 @@ import 'dart:ffi' as ffi;
 import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart' as ffi;
+import 'package:logging/logging.dart';
 import 'package:meta/meta.dart';
 import 'package:sane/sane.dart';
 import 'package:sane/src/bindings.g.dart';
 import 'package:sane/src/dylib.dart';
 import 'package:sane/src/extensions.dart';
-import 'package:sane/src/logger.dart';
+
+final _logger = Logger('sane');
 
 @internal
 class SyncSane implements Sane {
@@ -76,12 +78,12 @@ class SyncSane implements Sane {
 
     try {
       final status = _libsane.sane_init(versionCodePointer, callbackPtr);
-      logger.finest('sane_init() -> ${status.name}');
+      _logger.finest('sane_init() -> ${status.name}');
       status.check();
 
       final versionCode = versionCodePointer.value;
       final version = SaneVersion.fromCode(versionCode);
-      logger.finest('SANE version: $version');
+      _logger.finest('SANE version: $version');
 
       _initialized = true;
 
@@ -98,7 +100,7 @@ class SyncSane implements Sane {
     _initialized = false;
 
     _libsane.sane_exit();
-    logger.finest('sane_exit()');
+    _logger.finest('sane_exit()');
 
     _nativeAuthCallback?.close();
     _nativeAuthCallback = null;
@@ -116,7 +118,7 @@ class SyncSane implements Sane {
         deviceListPointer,
         localOnly.toSaneBool(),
       );
-      logger.finest('sane_get_devices() -> ${status.name}');
+      _logger.finest('sane_get_devices() -> ${status.name}');
       status.check();
 
       final devices = <SaneDevice>[];
@@ -141,7 +143,7 @@ class SyncSane implements Sane {
 
     try {
       final status = _libsane.sane_open(deviceNamePointer, nativeHandlePointer);
-      logger.finest('sane_open() -> ${status.name}');
+      _logger.finest('sane_open() -> ${status.name}');
       status.check();
 
       handle = SaneHandle(deviceName: deviceName);
@@ -167,7 +169,7 @@ class SyncSane implements Sane {
 
     _libsane.sane_close(_getPointerHandle(handle));
     _pointerHandles.remove(handle);
-    logger.finest('sane_close()');
+    _logger.finest('sane_close()');
   }
 
   @override
@@ -271,7 +273,7 @@ class SyncSane implements Sane {
       valuePointer.cast<ffi.Void>(),
       infoPointer,
     );
-    logger.finest(
+    _logger.finest(
       'sane_control_option($index, $action, $value) -> ${status.name}',
     );
 
@@ -392,7 +394,7 @@ class SyncSane implements Sane {
         _getPointerHandle(handle),
         nativeParametersPointer,
       );
-      logger.finest('sane_get_parameters() -> ${status.name}');
+      _logger.finest('sane_get_parameters() -> ${status.name}');
 
       status.check();
 
@@ -407,7 +409,7 @@ class SyncSane implements Sane {
     _checkIfInitialized();
 
     final status = _libsane.sane_start(_getPointerHandle(handle));
-    logger.finest('sane_start() -> ${status.name}');
+    _logger.finest('sane_start() -> ${status.name}');
 
     status.check();
   }
@@ -431,7 +433,7 @@ class SyncSane implements Sane {
         status.check();
       } on SaneEofException catch (_) {}
 
-      logger.finest('sane_read() -> ${status.name}');
+      _logger.finest('sane_read() -> ${status.name}');
 
       final length = lengthPointer.value;
       return Uint8List.fromList(
@@ -448,7 +450,7 @@ class SyncSane implements Sane {
     _checkIfInitialized();
 
     _libsane.sane_cancel(_getPointerHandle(handle));
-    logger.finest('sane_cancel()');
+    _logger.finest('sane_cancel()');
   }
 
   @override
@@ -459,7 +461,7 @@ class SyncSane implements Sane {
       _getPointerHandle(handle),
       mode.toNativeSaneBool(),
     );
-    logger.finest('sane_set_io_mode() -> ${status.name}');
+    _logger.finest('sane_set_io_mode() -> ${status.name}');
 
     status.check();
   }
