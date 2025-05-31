@@ -435,9 +435,9 @@ class SyncSane implements Sane {
 
       try {
         status.check();
-      } on SaneEofException catch (_) {}
-
-      _logger.finest('sane_read() -> ${status.name}');
+      } on SaneEofException catch (_) {
+        return Uint8List.fromList([]);
+      }
 
       final length = lengthPointer.value;
       return Uint8List.fromList(
