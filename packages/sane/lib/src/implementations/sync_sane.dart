@@ -244,7 +244,7 @@ class SyncSane implements Sane {
           break;
 
         case SaneOptionValueType.string when value is String:
-          final utf8Value = value.toNativeUtf8();
+          final utf8Value = value.toSaneString();
           valuePointer.cast<ffi.Uint8>().asTypedList(optionSize).setAll(
                 0,
                 utf8Value.cast<ffi.Uint8>().asTypedList(optionSize),
@@ -455,7 +455,7 @@ class SyncSane implements Sane {
 
     final status = _libsane.sane_set_io_mode(
       _getPointerHandle(handle),
-      mode.toNativeSaneBool(),
+      mode.toSaneBool(),
     );
     _logger.finest('sane_set_io_mode() -> ${status.name}');
 

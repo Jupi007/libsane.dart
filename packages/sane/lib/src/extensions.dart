@@ -269,7 +269,7 @@ extension StringExtension on String {
 }
 
 extension SaneIOModeExtension on SaneIOMode {
-  DartSANE_Word toNativeSaneBool() {
+  DartSANE_Word toSaneBool() {
     return switch (this) {
       SaneIOMode.blocking => SANE_FALSE,
       SaneIOMode.nonBlocking => SANE_TRUE,
