@@ -18,50 +18,49 @@ class ControlValueOptionMessage<T>
 
   @override
   Future<ControlValueOptionResponse<T>> exec(Sane sane) async {
-    switch (value) {
-      case final bool value:
-        final result = await sane.controlBoolOption(
-          handle: handle,
-          index: index,
-          action: action,
-          value: value,
-        );
-        return ControlValueOptionResponse<bool>(result)
-            as ControlValueOptionResponse<T>;
+    if (T == bool) {
+      final result = await sane.controlBoolOption(
+        handle: handle,
+        index: index,
+        action: action,
+        value: value as bool?,
+      );
 
-      case final int value:
-        final result = await sane.controlIntOption(
-          handle: handle,
-          index: index,
-          action: action,
-          value: value,
-        );
-        return ControlValueOptionResponse<int>(result)
-            as ControlValueOptionResponse<T>;
+      return ControlValueOptionResponse<bool>(result)
+          as ControlValueOptionResponse<T>;
+    } else if (T == int) {
+      final result = await sane.controlIntOption(
+        handle: handle,
+        index: index,
+        action: action,
+        value: value as int?,
+      );
 
-      case final double value:
-        final result = await sane.controlFixedOption(
-          handle: handle,
-          index: index,
-          action: action,
-          value: value,
-        );
-        return ControlValueOptionResponse<double>(result)
-            as ControlValueOptionResponse<T>;
+      return ControlValueOptionResponse<int>(result)
+          as ControlValueOptionResponse<T>;
+    } else if (T == double) {
+      final result = await sane.controlFixedOption(
+        handle: handle,
+        index: index,
+        action: action,
+        value: value as double?,
+      );
 
-      case final String value:
-        final result = await sane.controlStringOption(
-          handle: handle,
-          index: index,
-          action: action,
-          value: value,
-        );
-        return ControlValueOptionResponse<String>(result)
-            as ControlValueOptionResponse<T>;
+      return ControlValueOptionResponse<double>(result)
+          as ControlValueOptionResponse<T>;
+    } else if (T == String) {
+      final result = await sane.controlStringOption(
+        handle: handle,
+        index: index,
+        action: action,
+        value: value as String?,
+      );
 
-      default:
-        throw Exception('Invalid value type.');
+      return ControlValueOptionResponse<String>(result)
+          as ControlValueOptionResponse<T>;
     }
+
+    throw ArgumentError('Invalid value type "$T".');
   }
 }
 
