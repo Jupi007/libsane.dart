@@ -36,28 +36,17 @@ class SyncSane implements Sane {
       ffi.Pointer<SANE_Char> usernamePointer,
       ffi.Pointer<SANE_Char> passwordPointer,
     ) {
-      void copyToPointer(ffi.Pointer<SANE_Char> pointer, String string) {
-        final utf8String = string.toSaneString();
-        final stringBytes = utf8String.cast<ffi.Uint8>();
-
-        for (var i = 0; true; i++) {
-          if (i < SANE_MAX_USERNAME_LEN - 1 && stringBytes[i] != 0) {
-            pointer[i] = stringBytes[i];
-            continue;
-          }
-
-          pointer[i] = 0;
-          break;
-        }
-
-        ffi.calloc.free(utf8String);
-      }
-
       final credentials =
           authCallback!(resource.cast<ffi.Utf8>().toDartString());
 
-      copyToPointer(usernamePointer, credentials.username);
-      copyToPointer(passwordPointer, credentials.password);
+      usernamePointer.copyStringBytes(
+        credentials.username,
+        maxLenght: SANE_MAX_USERNAME_LEN,
+      );
+      passwordPointer.copyStringBytes(
+        credentials.password,
+        maxLenght: SANE_MAX_PASSWORD_LEN,
+      );
     }
 
     final versionCodePointer = ffi.calloc<SANE_Int>();
@@ -88,7 +77,7 @@ class SyncSane implements Sane {
 
   @override
   void exit() {
-    if (!_initialized) return;
+    _checkIfInitialized();
 
     _initialized = false;
 
@@ -244,12 +233,8 @@ class SyncSane implements Sane {
           break;
 
         case SaneOptionValueType.string when value is String:
-          final utf8Value = value.toSaneString();
-          valuePointer.cast<ffi.Uint8>().asTypedList(optionSize).setAll(
-                0,
-                utf8Value.cast<ffi.Uint8>().asTypedList(optionSize),
-              );
-          ffi.calloc.free(utf8Value);
+          (valuePointer as ffi.Pointer<SANE_Char>)
+              .copyStringBytes(value, maxLenght: optionSize);
           break;
 
         case SaneOptionValueType.button:

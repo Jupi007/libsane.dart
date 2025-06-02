@@ -268,6 +268,26 @@ extension StringExtension on String {
   SANE_String_Const toSaneString() => toNativeUtf8().cast<SANE_Char>();
 }
 
+extension SaneCharExtension on ffi.Pointer<SANE_Char> {
+  void copyStringBytes(String string, {int? maxLenght}) {
+    maxLenght = maxLenght ?? string.length;
+    final utf8String = string.toSaneString();
+    final stringBytes = utf8String.cast<ffi.Uint8>();
+
+    for (var i = 0; true; i++) {
+      if (i < maxLenght - 1) {
+        this[i] = stringBytes[i];
+        continue;
+      }
+
+      this[i] = 0;
+      break;
+    }
+
+    ffi.calloc.free(utf8String);
+  }
+}
+
 extension SaneIOModeExtension on SaneIOMode {
   DartSANE_Word toSaneBool() {
     return switch (this) {
