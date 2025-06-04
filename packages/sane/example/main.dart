@@ -35,7 +35,7 @@ void main(List<String> args) async {
       await sane.controlStringOption(
         handle: handle,
         index: optionDescriptor.index,
-        action: SaneAction.setValue,
+        action: SaneControlAction.setValue,
         value: 'Color',
       );
       break;

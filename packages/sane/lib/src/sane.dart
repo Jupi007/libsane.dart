@@ -49,7 +49,7 @@ abstract interface class Sane {
   /// - [`sane_close`](https://sane-project.gitlab.io/standard/api.html#sane-close)
   FutureOr<void> close(SaneHandle handle);
 
-  FutureOr<SaneOptionDescriptor> getOptionDescriptor(
+  FutureOr<SaneOptionDescriptor?> getOptionDescriptor(
     SaneHandle handle,
     int index,
   );
@@ -61,28 +61,28 @@ abstract interface class Sane {
   FutureOr<SaneOptionResult<bool>> controlBoolOption({
     required SaneHandle handle,
     required int index,
-    required SaneAction action,
+    required SaneControlAction action,
     bool? value,
   });
 
   FutureOr<SaneOptionResult<int>> controlIntOption({
     required SaneHandle handle,
     required int index,
-    required SaneAction action,
+    required SaneControlAction action,
     int? value,
   });
 
   FutureOr<SaneOptionResult<double>> controlFixedOption({
     required SaneHandle handle,
     required int index,
-    required SaneAction action,
+    required SaneControlAction action,
     double? value,
   });
 
   FutureOr<SaneOptionResult<String>> controlStringOption({
     required SaneHandle handle,
     required int index,
-    required SaneAction action,
+    required SaneControlAction action,
     String? value,
   });
 

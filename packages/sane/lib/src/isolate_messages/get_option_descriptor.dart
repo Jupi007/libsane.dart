@@ -22,5 +22,5 @@ class GetOptionDescriptorMessage
 class GetOptionDescriptorResponse implements IsolateResponse {
   GetOptionDescriptorResponse(this.optionDescriptor);
 
-  final SaneOptionDescriptor optionDescriptor;
+  final SaneOptionDescriptor? optionDescriptor;
 }

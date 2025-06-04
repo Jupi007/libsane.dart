@@ -192,11 +192,20 @@ abstract interface class SaneError extends Error {}
 /// SANE has been exited
 final class SaneNotInitializedError extends StateError implements SaneError {
   SaneNotInitializedError()
-      : super('SANE isn\'t initialized, please call init()');
+      : super('SANE isn\'t initialized, please call init().');
 }
 
 /// SANE is already initialized
 final class SaneAlreadyInitializedError extends StateError
     implements SaneError {
-  SaneAlreadyInitializedError() : super('SANE is already initialized');
+  SaneAlreadyInitializedError() : super('SANE is already initialized.');
+}
+
+/// SANE is already initialized
+final class SaneHandleClosedError extends StateError implements SaneError {
+  SaneHandleClosedError(this.deviceName)
+      : super(
+          'This handle is closed, you should recall open() with "$deviceName".',
+        );
+  final String deviceName;
 }

@@ -23,7 +23,13 @@ class SyncSane implements Sane {
   bool _initialized = false;
 
   final Map<SaneHandle, SANE_Handle> _pointerHandles = {};
-  SANE_Handle _getPointerHandle(SaneHandle handle) => _pointerHandles[handle]!;
+  SANE_Handle _getPointerHandle(SaneHandle handle) {
+    if (!_pointerHandles.containsKey(handle)) {
+      throw SaneHandleClosedError(handle.deviceName);
+    }
+
+    return _pointerHandles[handle]!;
+  }
 
   ffi.NativeCallable<SANE_Auth_CallbackFunction>? _nativeAuthCallback;
 
@@ -83,6 +89,8 @@ class SyncSane implements Sane {
 
     _libsane.sane_exit();
     _logger.finest('sane_exit()');
+
+    _pointerHandles.clear();
 
     _nativeAuthCallback?.close();
     _nativeAuthCallback = null;
@@ -152,12 +160,13 @@ class SyncSane implements Sane {
     _checkIfInitialized();
 
     _libsane.sane_close(_getPointerHandle(handle));
-    _pointerHandles.remove(handle);
     _logger.finest('sane_close()');
+
+    _pointerHandles.remove(handle);
   }
 
   @override
-  SaneOptionDescriptor getOptionDescriptor(
+  SaneOptionDescriptor? getOptionDescriptor(
     SaneHandle handle,
     int index,
   ) {
@@ -165,6 +174,10 @@ class SyncSane implements Sane {
 
     final optionDescriptorPointer =
         _libsane.sane_get_option_descriptor(_getPointerHandle(handle), index);
+
+    if (optionDescriptorPointer == ffi.nullptr) {
+      return null;
+    }
 
     return optionDescriptorPointer.ref.toSaneOptionDescriptorWithIndex(index);
   }
@@ -177,7 +190,7 @@ class SyncSane implements Sane {
 
     final optionDescriptors = <SaneOptionDescriptor>[];
 
-    for (var i = 0; true; i++) {
+    for (var i = 0;; i++) {
       final optionDescriptorPointer =
           _libsane.sane_get_option_descriptor(_getPointerHandle(handle), i);
 
@@ -193,7 +206,7 @@ class SyncSane implements Sane {
   SaneOptionResult<T> _controlOption<T>({
     required SaneHandle handle,
     required int index,
-    required SaneAction action,
+    required SaneControlAction action,
     T? value,
   }) {
     _checkIfInitialized();
@@ -218,7 +231,7 @@ class SyncSane implements Sane {
       };
     }();
 
-    if (action == SaneAction.setValue) {
+    if (action == SaneControlAction.setValue) {
       switch (optionType) {
         case SaneOptionValueType.bool when value is bool:
           (valuePointer as ffi.Pointer<SANE_Bool>).value = value.toSaneBool();
@@ -294,7 +307,7 @@ class SyncSane implements Sane {
   SaneOptionResult<bool> controlBoolOption({
     required SaneHandle handle,
     required int index,
-    required SaneAction action,
+    required SaneControlAction action,
     bool? value,
   }) {
     return _controlOption<bool>(
@@ -309,7 +322,7 @@ class SyncSane implements Sane {
   SaneOptionResult<int> controlIntOption({
     required SaneHandle handle,
     required int index,
-    required SaneAction action,
+    required SaneControlAction action,
     int? value,
   }) {
     return _controlOption<int>(
@@ -324,7 +337,7 @@ class SyncSane implements Sane {
   SaneOptionResult<double> controlFixedOption({
     required SaneHandle handle,
     required int index,
-    required SaneAction action,
+    required SaneControlAction action,
     double? value,
   }) {
     return _controlOption<double>(
@@ -339,7 +352,7 @@ class SyncSane implements Sane {
   SaneOptionResult<String> controlStringOption({
     required SaneHandle handle,
     required int index,
-    required SaneAction action,
+    required SaneControlAction action,
     String? value,
   }) {
     return _controlOption<String>(
@@ -358,7 +371,7 @@ class SyncSane implements Sane {
     return _controlOption<Null>(
       handle: handle,
       index: index,
-      action: SaneAction.setValue,
+      action: SaneControlAction.setValue,
       value: null,
     );
   }
@@ -397,6 +410,12 @@ class SyncSane implements Sane {
   @override
   Uint8List read(SaneHandle handle, int bufferSize) {
     _checkIfInitialized();
+
+    if (bufferSize <= 0) {
+      throw ArgumentError(
+        'Invalid bufferSize "$bufferSize" value, should be greater than 0.',
+      );
+    }
 
     final lengthPointer = ffi.calloc<SANE_Int>();
     final bufferPointer = ffi.calloc<SANE_Byte>(bufferSize);

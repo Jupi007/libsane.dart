@@ -81,7 +81,7 @@ class IsolatedSane implements Sane {
   }
 
   @override
-  Future<SaneOptionDescriptor> getOptionDescriptor(
+  Future<SaneOptionDescriptor?> getOptionDescriptor(
     SaneHandle handle,
     int index,
   ) async {
@@ -103,7 +103,7 @@ class IsolatedSane implements Sane {
   Future<SaneOptionResult<bool>> controlBoolOption({
     required SaneHandle handle,
     required int index,
-    required SaneAction action,
+    required SaneControlAction action,
     bool? value,
   }) async {
     final message = ControlValueOptionMessage(handle, index, action, value);
@@ -115,7 +115,7 @@ class IsolatedSane implements Sane {
   Future<SaneOptionResult<int>> controlIntOption({
     required SaneHandle handle,
     required int index,
-    required SaneAction action,
+    required SaneControlAction action,
     int? value,
   }) async {
     final message = ControlValueOptionMessage(handle, index, action, value);
@@ -127,7 +127,7 @@ class IsolatedSane implements Sane {
   Future<SaneOptionResult<double>> controlFixedOption({
     required SaneHandle handle,
     required int index,
-    required SaneAction action,
+    required SaneControlAction action,
     double? value,
   }) async {
     final message = ControlValueOptionMessage(handle, index, action, value);
@@ -139,7 +139,7 @@ class IsolatedSane implements Sane {
   Future<SaneOptionResult<String>> controlStringOption({
     required SaneHandle handle,
     required int index,
-    required SaneAction action,
+    required SaneControlAction action,
     String? value,
   }) async {
     final message = ControlValueOptionMessage(handle, index, action, value);

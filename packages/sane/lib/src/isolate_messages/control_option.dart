@@ -13,7 +13,7 @@ class ControlValueOptionMessage<T>
 
   final SaneHandle handle;
   final int index;
-  final SaneAction action;
+  final SaneControlAction action;
   final T? value;
 
   @override

@@ -95,18 +95,18 @@ extension NativeSaneOptionUnitExtension on SANE_Unit {
   }
 }
 
-extension SaneActionExtension on SaneAction {
-  /// Convert [SaneAction] to native [SANE_Action].
+extension SaneActionExtension on SaneControlAction {
+  /// Convert [SaneControlAction] to native [SANE_Action].
   SANE_Action toNativeSaneAction() {
     return switch (this) {
-      SaneAction.getValue => SANE_Action.ACTION_GET_VALUE,
-      SaneAction.setValue => SANE_Action.ACTION_SET_VALUE,
-      SaneAction.setAuto => SANE_Action.ACTION_SET_AUTO,
+      SaneControlAction.getValue => SANE_Action.ACTION_GET_VALUE,
+      SaneControlAction.setValue => SANE_Action.ACTION_SET_VALUE,
+      SaneControlAction.setAuto => SANE_Action.ACTION_SET_AUTO,
     };
   }
 }
 
-List<SaneOptionCapability> _saneOptionCapabilityFromBitmap(int bitset) {
+List<SaneOptionCapability> _saneOptionCapabilityFromBitset(int bitset) {
   final capabilities = <SaneOptionCapability>[];
 
   if (bitset & SANE_CAP_SOFT_SELECT != 0) {
@@ -198,11 +198,11 @@ extension SaneOptionDescriptorExtension on SANE_Option_Descriptor {
       index: index,
       name: name.toDartString(),
       title: title.toDartString(),
-      desc: desc.toDartString(),
+      description: desc.toDartString(),
       type: type.toSaneOptionValueType(),
       unit: unit.toSaneOptionUnit(),
       size: size,
-      capabilities: _saneOptionCapabilityFromBitmap(cap),
+      capabilities: _saneOptionCapabilityFromBitset(cap),
       constraint: _saneConstraintFromNative(
         constraint,
         constraint_type,
@@ -274,7 +274,7 @@ extension SaneCharExtension on ffi.Pointer<SANE_Char> {
     final utf8String = string.toSaneString();
     final stringBytes = utf8String.cast<ffi.Uint8>();
 
-    for (var i = 0; true; i++) {
+    for (var i = 0;; i++) {
       if (i < maxLenght - 1) {
         this[i] = stringBytes[i];
         continue;

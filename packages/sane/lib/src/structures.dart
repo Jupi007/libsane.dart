@@ -23,7 +23,7 @@ class SaneVersion {
 }
 
 class SaneCredentials {
-  SaneCredentials({
+  const SaneCredentials({
     required this.username,
     required this.password,
   });
@@ -33,7 +33,7 @@ class SaneCredentials {
 }
 
 class SaneDevice {
-  SaneDevice({
+  const SaneDevice({
     required this.name,
     required this.vendor,
     required this.model,
@@ -68,7 +68,7 @@ enum SaneFrameFormat {
 }
 
 class SaneParameters {
-  SaneParameters({
+  const SaneParameters({
     required this.format,
     required this.lastFrame,
     required this.bytesPerLine,
@@ -117,7 +117,7 @@ enum SaneOptionCapability {
 abstract class SaneOptionConstraint {}
 
 class SaneOptionConstraintRange<T extends num> implements SaneOptionConstraint {
-  SaneOptionConstraintRange({
+  const SaneOptionConstraintRange({
     required this.min,
     required this.max,
     required this.quant,
@@ -132,7 +132,7 @@ class SaneOptionConstraintRange<T extends num> implements SaneOptionConstraint {
 
 class SaneOptionConstraintWordList<T extends num>
     implements SaneOptionConstraint {
-  SaneOptionConstraintWordList({
+  const SaneOptionConstraintWordList({
     required this.wordList,
   });
 
@@ -140,7 +140,7 @@ class SaneOptionConstraintWordList<T extends num>
 }
 
 class SaneOptionConstraintStringList implements SaneOptionConstraint {
-  SaneOptionConstraintStringList({
+  const SaneOptionConstraintStringList({
     required this.stringList,
   });
 
@@ -148,11 +148,11 @@ class SaneOptionConstraintStringList implements SaneOptionConstraint {
 }
 
 class SaneOptionDescriptor {
-  SaneOptionDescriptor({
+  const SaneOptionDescriptor({
     required this.index,
     required this.name,
     required this.title,
-    required this.desc,
+    required this.description,
     required this.type,
     required this.unit,
     required this.size,
@@ -163,7 +163,7 @@ class SaneOptionDescriptor {
   final int index;
   final String? name;
   final String? title;
-  final String? desc;
+  final String? description;
   final SaneOptionValueType type;
   final SaneOptionUnit unit;
   final int size;
@@ -171,7 +171,7 @@ class SaneOptionDescriptor {
   final SaneOptionConstraint? constraint;
 }
 
-enum SaneAction {
+enum SaneControlAction {
   getValue,
   setValue,
   setAuto;
@@ -184,7 +184,7 @@ enum SaneOptionInfo {
 }
 
 class SaneOptionResult<T> {
-  SaneOptionResult({
+  const SaneOptionResult({
     required this.result,
     required this.infos,
   });
