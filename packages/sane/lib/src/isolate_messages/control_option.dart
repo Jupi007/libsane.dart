@@ -1,5 +1,5 @@
 import 'package:sane/src/isolate_messages/interface.dart';
-import 'package:sane/src/sane.dart';
+import 'package:sane/src/raw_sane.dart';
 import 'package:sane/src/structures.dart';
 
 class ControlValueOptionMessage<T>
@@ -17,9 +17,9 @@ class ControlValueOptionMessage<T>
   final T? value;
 
   @override
-  Future<ControlValueOptionResponse<T>> exec(Sane sane) async {
+  Future<ControlValueOptionResponse<T>> exec(RawSane sane) async {
     if (T == bool) {
-      final result = await sane.controlBoolOption(
+      final result = sane.controlBoolOption(
         handle: handle,
         index: index,
         action: action,
@@ -29,7 +29,7 @@ class ControlValueOptionMessage<T>
       return ControlValueOptionResponse<bool>(result)
           as ControlValueOptionResponse<T>;
     } else if (T == int) {
-      final result = await sane.controlIntOption(
+      final result = sane.controlIntOption(
         handle: handle,
         index: index,
         action: action,
@@ -39,7 +39,7 @@ class ControlValueOptionMessage<T>
       return ControlValueOptionResponse<int>(result)
           as ControlValueOptionResponse<T>;
     } else if (T == double) {
-      final result = await sane.controlFixedOption(
+      final result = sane.controlFixedOption(
         handle: handle,
         index: index,
         action: action,
@@ -49,7 +49,7 @@ class ControlValueOptionMessage<T>
       return ControlValueOptionResponse<double>(result)
           as ControlValueOptionResponse<T>;
     } else if (T == String) {
-      final result = await sane.controlStringOption(
+      final result = sane.controlStringOption(
         handle: handle,
         index: index,
         action: action,

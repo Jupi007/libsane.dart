@@ -1,5 +1,5 @@
 import 'package:sane/src/isolate_messages/interface.dart';
-import 'package:sane/src/sane.dart';
+import 'package:sane/src/raw_sane.dart';
 import 'package:sane/src/structures.dart';
 
 class ControlButtonOptionMessage
@@ -10,8 +10,8 @@ class ControlButtonOptionMessage
   final int index;
 
   @override
-  Future<ControlButtonOptionResponse> exec(Sane sane) async {
-    final result = await sane.controlButtonOption(
+  Future<ControlButtonOptionResponse> exec(RawSane sane) async {
+    final result = sane.controlButtonOption(
       handle: handle,
       index: index,
     );

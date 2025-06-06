@@ -12,8 +12,8 @@ import 'package:sane/src/extensions.dart';
 final _logger = Logger('sane');
 
 @internal
-class SyncSane implements Sane {
-  SyncSane([
+class RawSane implements IRawSane {
+  RawSane([
     @visibleForTesting LibSane? libSaneOverride,
   ]) : _libSaneOverride = libSaneOverride;
 
@@ -33,6 +33,7 @@ class SyncSane implements Sane {
 
   ffi.NativeCallable<SANE_Auth_CallbackFunction>? _nativeAuthCallback;
 
+  /// Initializes the SANE library.
   @override
   SaneVersion init({AuthCallback? authCallback}) {
     if (_initialized) throw SaneAlreadyInitializedError();
@@ -81,6 +82,13 @@ class SyncSane implements Sane {
     }
   }
 
+  /// Disposes the SANE instance.
+  ///
+  /// Closes all device handles and all future calls are invalid.
+  ///
+  /// See also:
+  ///
+  /// - [`sane_exit`](https://sane-project.gitlab.io/standard/api.html#sane-exit)
   @override
   void exit() {
     _checkIfInitialized();
@@ -96,6 +104,17 @@ class SyncSane implements Sane {
     _nativeAuthCallback = null;
   }
 
+  /// Queries the list of devices that are available.
+  ///
+  /// This method can be called repeatedly to detect when new devices become
+  /// available. If argument [localOnly] is true, only local devices are
+  /// returned (devices directly attached to the machine that SANE is running
+  /// on). If it is `false`, the device list includes all remote devices that
+  /// are accessible to the SANE library.
+  ///
+  /// See also:
+  ///
+  /// - [`sane_get_devices`](https://sane-project.gitlab.io/standard/api.html#sane-get-devices)
   @override
   List<SaneDevice> getDevices({bool localOnly = true}) {
     _checkIfInitialized();
@@ -155,6 +174,11 @@ class SyncSane implements Sane {
     return open(device.name);
   }
 
+  /// Disposes the SANE device. Infers [cancel].
+  ///
+  /// See also:
+  ///
+  /// - [`sane_close`](https://sane-project.gitlab.io/standard/api.html#sane-close)
   @override
   void close(SaneHandle handle) {
     _checkIfInitialized();
@@ -397,6 +421,28 @@ class SyncSane implements Sane {
     }
   }
 
+  /// Initiates acquisition of an image from the device.
+  ///
+  /// Exceptions:
+  ///
+  /// - Throws [SaneCancelledException] if the operation was cancelled through
+  ///   a call to [cancel].
+  /// - Throws [SaneDeviceBusyException] if the device is busy. The operation
+  ///   should be later again.
+  /// - Throws [SaneJammedException] if the document feeder is jammed.
+  /// - Throws [SaneNoDocumentsException] if the document feeder is out of
+  ///   documents.
+  /// - Throws [SaneCoverOpenException] if the scanner cover is open.
+  /// - Throws [SaneIoException] if an error occurred while communicating with
+  ///   the device.
+  /// - Throws [SaneNoMemoryException] if no memory is available.
+  /// - Throws [SaneInvalidDataException] if the sane cannot be started with the
+  ///   current set of options. The frontend should reload the option
+  ///   descriptors.
+  ///
+  /// See also:
+  ///
+  /// - [`sane_start`](https://sane-project.gitlab.io/standard/api.html#sane-start)
   @override
   void start(SaneHandle handle) {
     _checkIfInitialized();
@@ -407,6 +453,28 @@ class SyncSane implements Sane {
     status.check();
   }
 
+  /// Reads image data from the device.
+  ///
+  /// The returned [Uint8List] is [bufferSize] bytes long or less. If it is
+  /// zero, the end of the frame has been reached.
+  ///
+  /// Exceptions:
+  ///
+  /// - Throws [SaneCancelledException] if the operation was cancelled through
+  ///   a call to [cancel].
+  /// - Throws [SaneJammedException] if the document feeder is jammed.
+  /// - Throws [SaneNoDocumentsException] if the document feeder is out of
+  ///   documents.
+  /// - Throws [SaneCoverOpenException] if the scanner cover is open.
+  /// - Throws [SaneIoException] if an error occurred while communicating with
+  ///   the device.
+  /// - Throws [SaneNoMemoryException] if no memory is available.
+  /// - Throws [SaneAccessDeniedException] if access to the device has been
+  ///   denied due to insufficient or invalid authentication.
+  ///
+  /// See also:
+  ///
+  /// - [`sane_read`](https://sane-project.gitlab.io/standard/api.html#sane-read)
   @override
   Uint8List read(SaneHandle handle, int bufferSize) {
     _checkIfInitialized();
@@ -445,6 +513,12 @@ class SyncSane implements Sane {
     }
   }
 
+  /// Tries to cancel the currently pending operation of the device immediately
+  /// or as quickly as possible.
+  ///
+  /// See also:
+  ///
+  /// - [`sane_cancel`](https://sane-project.gitlab.io/standard/api.html#sane-cancel)
   @override
   void cancel(SaneHandle handle) {
     _checkIfInitialized();
@@ -453,7 +527,6 @@ class SyncSane implements Sane {
     _logger.finest('sane_cancel()');
   }
 
-  @override
   void setIOMode(SaneHandle handle, SaneIOMode mode) {
     _checkIfInitialized();
 

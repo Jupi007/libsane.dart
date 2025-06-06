@@ -5,10 +5,10 @@ import 'package:logging/logging.dart';
 import 'package:meta/meta.dart';
 import 'package:sane/src/exceptions.dart';
 import 'package:sane/src/extensions.dart';
+import 'package:sane/src/isolate_messages/dispose.dart';
 import 'package:sane/src/isolate_messages/exception.dart';
-import 'package:sane/src/isolate_messages/exit.dart';
 import 'package:sane/src/isolate_messages/interface.dart';
-import 'package:sane/src/sane.dart';
+import 'package:sane/src/raw_sane.dart';
 
 final _logger = Logger('sane.isolate');
 
@@ -22,7 +22,7 @@ class SaneIsolate {
   final Isolate _isolate;
   final SendPort _sendPort;
 
-  static Future<SaneIsolate> spawn(Sane sane) async {
+  static Future<SaneIsolate> spawn(RawSane sane) async {
     final receivePort = ReceivePort();
 
     final isolate = await Isolate.spawn(
@@ -75,7 +75,7 @@ class SaneIsolate {
   }
 }
 
-typedef _EntryPointArgs = (SendPort sendPort, Sane sane);
+typedef _EntryPointArgs = (SendPort sendPort, RawSane sane);
 
 void _entryPoint(_EntryPointArgs args) {
   final (sendPort, sane) = args;
@@ -110,7 +110,7 @@ void _entryPoint(_EntryPointArgs args) {
 
       replyPort.send(response);
 
-      if (message is ExitMessage) {
+      if (message is DisposeMessage) {
         await subscription.cancel();
       }
     },

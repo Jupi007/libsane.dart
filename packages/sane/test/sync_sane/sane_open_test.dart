@@ -4,7 +4,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:sane/sane.dart';
 import 'package:sane/src/bindings.g.dart';
 import 'package:sane/src/extensions.dart';
-import 'package:sane/src/implementations/sync_sane.dart';
+import 'package:sane/src/raw_sane.dart';
 import 'package:test/test.dart';
 
 import '../common/mock_libsane.dart';
@@ -14,13 +14,13 @@ void main() {
 
   group('SyncSane.open()', () {
     test('throw SaneNotInitializedError when not initialized', () {
-      final sane = SyncSane(MockLibSane());
+      final sane = RawSane(MockLibSane());
       expect(sane.open('deviceName'), throwsA(isA<SaneNotInitializedError>()));
     });
 
     test('throws SaneStatusException when status is not STATUS_GOOD', () {
       final libsane = MockLibSane();
-      final sane = SyncSane(libsane);
+      final sane = RawSane(libsane);
 
       when(
         () => libsane.sane_init(any(), any()),
@@ -37,7 +37,7 @@ void main() {
 
     test('with device name string', () {
       final libsane = MockLibSane();
-      final sane = SyncSane(libsane);
+      final sane = RawSane(libsane);
 
       const deviceName = 'deviceName';
 
@@ -67,7 +67,7 @@ void main() {
 
     test('with with sane device class', () {
       final libsane = MockLibSane();
-      final sane = SyncSane(libsane);
+      final sane = RawSane(libsane);
 
       const deviceName = 'deviceName';
       const device = SaneDevice(

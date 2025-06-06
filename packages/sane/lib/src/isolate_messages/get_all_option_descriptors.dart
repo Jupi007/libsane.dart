@@ -1,5 +1,5 @@
 import 'package:sane/src/isolate_messages/interface.dart';
-import 'package:sane/src/sane.dart';
+import 'package:sane/src/raw_sane.dart';
 import 'package:sane/src/structures.dart';
 
 class GetAllOptionDescriptorsMessage
@@ -9,8 +9,8 @@ class GetAllOptionDescriptorsMessage
   final SaneHandle handle;
 
   @override
-  Future<GetAllOptionDescriptorsResponse> exec(Sane sane) async {
-    final optionDescriptors = await sane.getAllOptionDescriptors(handle);
+  Future<GetAllOptionDescriptorsResponse> exec(RawSane sane) async {
+    final optionDescriptors = sane.getAllOptionDescriptors(handle);
     return GetAllOptionDescriptorsResponse(optionDescriptors);
   }
 }

@@ -1,5 +1,5 @@
 import 'package:sane/src/isolate_messages/interface.dart';
-import 'package:sane/src/sane.dart';
+import 'package:sane/src/raw_sane.dart';
 import 'package:sane/src/structures.dart';
 
 class OpenMessage implements IsolateMessage<OpenResponse> {
@@ -8,8 +8,8 @@ class OpenMessage implements IsolateMessage<OpenResponse> {
   final String deviceName;
 
   @override
-  Future<OpenResponse> exec(Sane sane) async {
-    final handle = await sane.open(deviceName);
+  Future<OpenResponse> exec(RawSane sane) async {
+    final handle = sane.open(deviceName);
     return OpenResponse(handle);
   }
 }

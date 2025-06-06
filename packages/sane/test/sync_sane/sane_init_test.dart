@@ -5,7 +5,7 @@ import 'package:mocktail/mocktail.dart';
 import 'package:sane/sane.dart';
 import 'package:sane/src/bindings.g.dart';
 import 'package:sane/src/extensions.dart';
-import 'package:sane/src/implementations/sync_sane.dart';
+import 'package:sane/src/raw_sane.dart';
 import 'package:test/test.dart';
 
 import '../common/mock_libsane.dart';
@@ -24,7 +24,7 @@ void main() {
         return SANE_Status.STATUS_GOOD;
       });
 
-      final sane = SyncSane(libsane);
+      final sane = RawSane(libsane);
       final version = sane.init();
 
       expect(version.toString(), equals('1.2.3'));
@@ -50,7 +50,7 @@ void main() {
           );
         }
 
-        final sane = SyncSane(libsane);
+        final sane = RawSane(libsane);
         sane.init(authCallback: authCallback);
 
         final capturedArguments =
@@ -115,7 +115,7 @@ void main() {
       when(() => libsane.sane_init(any(), any()))
           .thenReturn(SANE_Status.STATUS_IO_ERROR);
 
-      final sane = SyncSane(libsane);
+      final sane = RawSane(libsane);
       expect(sane.init, throwsA(isA<SaneIoException>()));
     });
 
@@ -125,7 +125,7 @@ void main() {
       when(() => libsane.sane_init(any(), any()))
           .thenReturn(SANE_Status.STATUS_GOOD);
 
-      final sane = SyncSane(libsane);
+      final sane = RawSane(libsane);
       expect(sane.init, returnsNormally);
       expect(sane.init, throwsA(isA<SaneAlreadyInitializedError>()));
     });

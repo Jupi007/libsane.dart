@@ -4,7 +4,7 @@ import 'package:ffi/ffi.dart' as ffi;
 import 'package:mocktail/mocktail.dart';
 import 'package:sane/sane.dart';
 import 'package:sane/src/bindings.g.dart';
-import 'package:sane/src/implementations/sync_sane.dart';
+import 'package:sane/src/raw_sane.dart';
 import 'package:test/test.dart';
 
 import '../common/mock_libsane.dart';
@@ -15,7 +15,7 @@ void main() {
 
   group('SyncSane.controlOption()', () {
     test('throw SaneNotInitializedError when not initialized', () {
-      final sane = SyncSane(MockLibSane());
+      final sane = RawSane(MockLibSane());
       const handle = SaneHandle(deviceName: 'deviceName');
       expect(
         () => sane.controlBoolOption(
@@ -60,7 +60,7 @@ void main() {
 
     test('set an option', () {
       final libsane = MockLibSane();
-      final sane = SyncSane(libsane);
+      final sane = RawSane(libsane);
 
       when(
         () => libsane.sane_init(any(), any()),

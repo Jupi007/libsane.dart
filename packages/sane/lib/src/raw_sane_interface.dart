@@ -2,17 +2,10 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:sane/sane.dart';
-import 'package:sane/src/implementations/isolated_sane.dart';
-import 'package:sane/src/implementations/sync_sane.dart';
 
 typedef AuthCallback = SaneCredentials Function(String resourceName);
 
-abstract interface class Sane {
-  /// Instantiates a new SANE instance.
-  factory Sane() => _instance ??= IsolatedSane(SyncSane());
-
-  static Sane? _instance;
-
+abstract interface class IRawSane {
   /// Initializes the SANE library.
   FutureOr<SaneVersion> init({AuthCallback? authCallback});
 
@@ -148,8 +141,6 @@ abstract interface class Sane {
   ///
   /// - [`sane_cancel`](https://sane-project.gitlab.io/standard/api.html#sane-cancel)
   FutureOr<void> cancel(SaneHandle handle);
-
-  FutureOr<void> setIOMode(SaneHandle handle, SaneIOMode mode);
 }
 
 /// Predefined device types for [SaneDevice.type].

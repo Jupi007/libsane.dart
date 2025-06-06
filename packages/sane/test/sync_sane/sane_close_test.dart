@@ -1,7 +1,7 @@
 import 'package:mocktail/mocktail.dart';
 import 'package:sane/sane.dart';
 import 'package:sane/src/bindings.g.dart';
-import 'package:sane/src/implementations/sync_sane.dart';
+import 'package:sane/src/raw_sane.dart';
 import 'package:test/test.dart';
 
 import '../common/mock_libsane.dart';
@@ -11,14 +11,14 @@ void main() {
 
   group('SyncSane.close()', () {
     test('throw SaneNotInitializedError when not initialized', () {
-      final sane = SyncSane(MockLibSane());
+      final sane = RawSane(MockLibSane());
       const handle = SaneHandle(deviceName: 'deviceName');
       expect(() => sane.close(handle), throwsA(isA<SaneNotInitializedError>()));
     });
 
     test('handle can\'t be used after being closed', () {
       final libsane = MockLibSane();
-      final sane = SyncSane(libsane);
+      final sane = RawSane(libsane);
 
       when(
         () => libsane.sane_init(any(), any()),

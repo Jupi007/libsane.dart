@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:meta/meta.dart';
-import 'package:sane/src/exceptions.dart';
 import 'package:sane/src/isolate.dart';
 import 'package:sane/src/isolate_messages/cancel.dart';
 import 'package:sane/src/isolate_messages/close.dart';
 import 'package:sane/src/isolate_messages/control_button_option.dart';
 import 'package:sane/src/isolate_messages/control_option.dart';
+import 'package:sane/src/isolate_messages/dispose.dart';
 import 'package:sane/src/isolate_messages/exit.dart';
 import 'package:sane/src/isolate_messages/get_all_option_descriptors.dart';
 import 'package:sane/src/isolate_messages/get_devices.dart';
@@ -17,48 +17,59 @@ import 'package:sane/src/isolate_messages/init.dart';
 import 'package:sane/src/isolate_messages/interface.dart';
 import 'package:sane/src/isolate_messages/open.dart';
 import 'package:sane/src/isolate_messages/read.dart';
-import 'package:sane/src/isolate_messages/set_io_mode.dart';
 import 'package:sane/src/isolate_messages/start.dart';
-import 'package:sane/src/sane.dart';
+import 'package:sane/src/raw_sane.dart';
+import 'package:sane/src/raw_sane_interface.dart';
 import 'package:sane/src/structures.dart';
 
 @internal
-class IsolatedSane implements Sane {
-  IsolatedSane(Sane backingSane) : _backingSane = backingSane;
+class IsolatedRawSane implements IRawSane {
+  IsolatedRawSane([@visibleForTesting RawSane? rawSane])
+      : _rawSane = rawSane ?? RawSane();
 
-  final Sane _backingSane;
+  final RawSane _rawSane;
 
   SaneIsolate? _isolate;
 
   Future<T> _sendMessage<T extends IsolateResponse>(
     IsolateMessage<T> message,
   ) async {
-    if (_isolate == null) throw SaneNotInitializedError();
+    if (_isolate == null) {
+      throw StateError(
+        'The isolate has not been initialized, please call spawn() first.',
+      );
+    }
     return _isolate!.sendMessage(message);
+  }
+
+  Future<void> spawn() async {
+    if (_isolate != null) return;
+    _isolate = await SaneIsolate.spawn(_rawSane);
+  }
+
+  Future<void> dispose() async {
+    final message = DisposeMessage();
+    await _sendMessage(message);
+    _isolate = null;
   }
 
   @override
   Future<SaneVersion> init({AuthCallback? authCallback}) async {
-    if (_isolate != null) throw SaneAlreadyInitializedError();
-    _isolate = await SaneIsolate.spawn(_backingSane);
-    final response = await _isolate!.sendMessage(
-      InitMessage(authCallback),
-    );
+    final message = InitMessage(authCallback);
+    final response = await _sendMessage(message);
     return response.version;
   }
 
   @override
   Future<void> exit() async {
-    await _sendMessage(ExitMessage());
-    _isolate = null;
+    final message = ExitMessage();
+    await _sendMessage(message);
   }
 
   @override
   Future<List<SaneDevice>> getDevices({bool localOnly = true}) async {
-    final response = await _sendMessage(
-      GetDevicesMessage(localOnly: localOnly),
-    );
-
+    final message = GetDevicesMessage(localOnly: localOnly);
+    final response = await _sendMessage(message);
     return response.devices;
   }
 
@@ -180,12 +191,6 @@ class IsolatedSane implements Sane {
   @override
   Future<void> cancel(SaneHandle handle) async {
     final message = CancelMessage(handle);
-    await _sendMessage(message);
-  }
-
-  @override
-  Future<void> setIOMode(SaneHandle handle, SaneIOMode mode) async {
-    final message = SetIOModeMessage(handle, mode);
     await _sendMessage(message);
   }
 }

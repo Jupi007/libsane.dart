@@ -1,5 +1,6 @@
 import 'package:sane/src/isolate_messages/interface.dart';
-import 'package:sane/src/sane.dart';
+import 'package:sane/src/raw_sane.dart';
+import 'package:sane/src/raw_sane_interface.dart';
 import 'package:sane/src/structures.dart';
 
 class InitMessage implements IsolateMessage<InitResponse> {
@@ -7,8 +8,8 @@ class InitMessage implements IsolateMessage<InitResponse> {
 
   final AuthCallback? authCallback;
   @override
-  Future<InitResponse> exec(Sane sane) async {
-    final version = await sane.init(authCallback: authCallback);
+  Future<InitResponse> exec(RawSane sane) async {
+    final version = sane.init(authCallback: authCallback);
     return InitResponse(version);
   }
 }

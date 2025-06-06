@@ -1,5 +1,5 @@
 import 'package:sane/src/isolate_messages/interface.dart';
-import 'package:sane/src/sane.dart';
+import 'package:sane/src/raw_sane.dart';
 import 'package:sane/src/structures.dart';
 
 class GetParametersMessage implements IsolateMessage<GetParametersResponse> {
@@ -8,8 +8,8 @@ class GetParametersMessage implements IsolateMessage<GetParametersResponse> {
   final SaneHandle handle;
 
   @override
-  Future<GetParametersResponse> exec(Sane sane) async {
-    final parameters = await sane.getParameters(handle);
+  Future<GetParametersResponse> exec(RawSane sane) async {
+    final parameters = sane.getParameters(handle);
     return GetParametersResponse(parameters);
   }
 }

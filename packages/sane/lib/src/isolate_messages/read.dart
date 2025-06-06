@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:sane/src/isolate_messages/interface.dart';
-import 'package:sane/src/sane.dart';
+import 'package:sane/src/raw_sane.dart';
 import 'package:sane/src/structures.dart';
 
 class ReadMessage implements IsolateMessage<ReadResponse> {
@@ -11,8 +11,8 @@ class ReadMessage implements IsolateMessage<ReadResponse> {
   final int bufferSize;
 
   @override
-  Future<ReadResponse> exec(Sane sane) async {
-    final bytes = await sane.read(handle, bufferSize);
+  Future<ReadResponse> exec(RawSane sane) async {
+    final bytes = sane.read(handle, bufferSize);
     return ReadResponse(bytes);
   }
 }

@@ -4,7 +4,7 @@ import 'package:ffi/ffi.dart' as ffi;
 import 'package:mocktail/mocktail.dart';
 import 'package:sane/sane.dart';
 import 'package:sane/src/bindings.g.dart';
-import 'package:sane/src/implementations/sync_sane.dart';
+import 'package:sane/src/raw_sane.dart';
 import 'package:test/test.dart';
 
 import '../common/mock_libsane.dart';
@@ -15,13 +15,13 @@ void main() {
 
   group('SyncSane.getDevices()', () {
     test('throw SaneNotInitializedError when not initialized', () {
-      final sane = SyncSane(MockLibSane());
+      final sane = RawSane(MockLibSane());
       expect(sane.getDevices, throwsA(isA<SaneNotInitializedError>()));
     });
 
     test('throws SaneStatusException when status is not STATUS_GOOD', () {
       final libsane = MockLibSane();
-      final sane = SyncSane(libsane);
+      final sane = RawSane(libsane);
 
       when(
         () => libsane.sane_init(any(), any()),
@@ -36,7 +36,7 @@ void main() {
 
     test('with empty device list', () {
       final libsane = MockLibSane();
-      final sane = SyncSane(libsane);
+      final sane = RawSane(libsane);
 
       when(
         () => libsane.sane_init(any(), any()),
@@ -65,7 +65,7 @@ void main() {
 
     test('with non-empty device list', () {
       final libsane = MockLibSane();
-      final sane = SyncSane(libsane);
+      final sane = RawSane(libsane);
 
       when(
         () => libsane.sane_init(any(), any()),

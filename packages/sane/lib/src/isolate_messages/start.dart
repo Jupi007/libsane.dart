@@ -1,5 +1,5 @@
 import 'package:sane/src/isolate_messages/interface.dart';
-import 'package:sane/src/sane.dart';
+import 'package:sane/src/raw_sane.dart';
 import 'package:sane/src/structures.dart';
 
 class StartMessage implements IsolateMessage {
@@ -8,8 +8,8 @@ class StartMessage implements IsolateMessage {
   final SaneHandle handle;
 
   @override
-  Future<StartResponse> exec(Sane sane) async {
-    await sane.start(handle);
+  Future<StartResponse> exec(RawSane sane) async {
+    sane.start(handle);
     return StartResponse();
   }
 }

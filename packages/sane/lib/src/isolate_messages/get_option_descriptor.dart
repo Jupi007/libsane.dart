@@ -1,5 +1,5 @@
 import 'package:sane/src/isolate_messages/interface.dart';
-import 'package:sane/src/sane.dart';
+import 'package:sane/src/raw_sane.dart';
 import 'package:sane/src/structures.dart';
 
 class GetOptionDescriptorMessage
@@ -13,8 +13,8 @@ class GetOptionDescriptorMessage
   final int index;
 
   @override
-  Future<GetOptionDescriptorResponse> exec(Sane sane) async {
-    final optionDescriptor = await sane.getOptionDescriptor(handle, index);
+  Future<GetOptionDescriptorResponse> exec(RawSane sane) async {
+    final optionDescriptor = sane.getOptionDescriptor(handle, index);
     return GetOptionDescriptorResponse(optionDescriptor);
   }
 }
